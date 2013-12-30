@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+
+<script language='javascript'>
+
+    window.onload = function () {
+
+        var line = '{ "results": [{"_id":"39d6d76f-8572-4a33-a598-bc7dda1da185","homeTeam":"Miami Heat","awayTeam":"Chicago Bulls","homeScore":110.0,"awayScore":1110},{"_id":"39d6d76f-8572-4a33-a598-bc7dda1da186","homeTeam":"Miami Heat","awayTeam":"LA Lakers","homeScore":110.0,"awayScore":91.0}] }';
+        //var line1 ='{"results": [true, false], "count":1}';
+
+        var obj = JSON.parse(line);
+
+        alert(obj.results.length);
+        //alert(obj.results[0]._id);
+
+        var resultArray = [];
+        for (var i = 0; i < obj.results.length; i++) {
+          //alert(obj.results[i]._id);
+          resultArray[i] = new RecentResult(obj.results[i]);
+          alert(resultArray[i].awayScore);
+        }
+
+
+        function RecentResult(json) {
+            var that = this;
+            that._id = json._id;
+            that.homeTeam = json.homeTeam;
+            that.awayTeam = json.awayTeam;
+            that.homeScore = json.homeScore;
+            that.awayScore = json.awayScore;
+        }
+
+
+    }
+</script>
+
+</body>
+</html>

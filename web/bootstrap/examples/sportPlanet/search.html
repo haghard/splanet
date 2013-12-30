@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+
+    <link href="../../dist/css/bootstrap.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="../../dist/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="theme.css" rel="stylesheet">
+    <link href="signin.css" rel="stylesheet">
+
+    <script src="../../docs-assets/js/ie8-responsive-file-warning.js"></script>
+
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+
+</head>
+<body>
+
+<div class="example example-sports">
+    <h2 class="example-name">NBA and NHL Teams</h2>
+    <p class="example-description">Two datasets that are prefetched, stored, and searched on the client</p>
+
+    <div class="demo">
+        <span class="twitter-typeahead" style="position: relative; display: inline-block;"><input class="tt-hint" type="text" autocomplete="off" spellcheck="off" disabled="" style="position: absolute; top: 0px; left: 0px; border-color: transparent; box-shadow: none; background-attachment: scroll; background-clip: border-box; background-color: rgb(255, 255, 255); background-image: none; background-origin: padding-box; background-size: auto; background-position: 0% 0%; background-repeat: repeat repeat;"><input class="typeahead tt-query" type="text" placeholder="NBA and NHL teams" autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top; background-color: transparent;"><span style="position: absolute; left: -9999px; visibility: hidden; white-space: nowrap; font-family: 'Lucida Grande'; font-size: 24px; font-style: normal; font-variant: normal; font-weight: 400; word-spacing: 0px; letter-spacing: 0px; text-indent: 0px; text-rendering: auto; text-transform: none;"></span><span class="tt-dropdown-menu" style="position: absolute; top: 100%; left: 0px; z-index: 100; display: none;"></span></span>
+    </div>
+
+    <div class="gist">
+        <script src="https://gist.github.com/jharding/4983546.js"></script><link rel="stylesheet" href="https://gist.github.com/assets/embed-e0b4f33c526bffffd8e8377a4f0bc6de.css"><div id="gist4983546" class="gist">
+        <div class="gist-file">
+            <div class="gist-data gist-syntax">
+
+
+
+                <div class="file-data">
+                    <table cellpadding="0" cellspacing="0" class="lines highlight">
+                        <tbody><tr>
+                            <td class="line-numbers">
+                                <span class="line-number" id="file-typeahead-sports-example-js-L1" rel="file-typeahead-sports-example-js-L1">1</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L2" rel="file-typeahead-sports-example-js-L2">2</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L3" rel="file-typeahead-sports-example-js-L3">3</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L4" rel="file-typeahead-sports-example-js-L4">4</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L5" rel="file-typeahead-sports-example-js-L5">5</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L6" rel="file-typeahead-sports-example-js-L6">6</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L7" rel="file-typeahead-sports-example-js-L7">7</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L8" rel="file-typeahead-sports-example-js-L8">8</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L9" rel="file-typeahead-sports-example-js-L9">9</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L10" rel="file-typeahead-sports-example-js-L10">10</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L11" rel="file-typeahead-sports-example-js-L11">11</span>
+                                <span class="line-number" id="file-typeahead-sports-example-js-L12" rel="file-typeahead-sports-example-js-L12">12</span>
+                            </td>
+                            <td class="line-data">
+                                <pre class="line-pre"><div class="line" id="file-typeahead-sports-example-js-LC1"><span class="nx">$</span><span class="p">(</span><span class="s1">'.example-sports .typeahead'</span><span class="p">).</span><span class="nx">typeahead</span><span class="p">([</span></div><div class="line" id="file-typeahead-sports-example-js-LC2">  <span class="p">{</span></div><div class="line" id="file-typeahead-sports-example-js-LC3">    <span class="nx">name</span><span class="o">:</span> <span class="s1">'nba-teams'</span><span class="p">,</span></div><div class="line" id="file-typeahead-sports-example-js-LC4">    <span class="nx">prefetch</span><span class="o">:</span> <span class="s1">'../data/nba.json'</span><span class="p">,</span></div><div class="line" id="file-typeahead-sports-example-js-LC5">    <span class="nx">header</span><span class="o">:</span> <span class="s1">'&lt;h3 class="league-name"&gt;NBA Teams&lt;/h3&gt;'</span></div><div class="line" id="file-typeahead-sports-example-js-LC6">  <span class="p">},</span></div><div class="line" id="file-typeahead-sports-example-js-LC7">  <span class="p">{</span></div><div class="line" id="file-typeahead-sports-example-js-LC8">    <span class="nx">name</span><span class="o">:</span> <span class="s1">'nhl-teams'</span><span class="p">,</span></div><div class="line" id="file-typeahead-sports-example-js-LC9">    <span class="nx">prefetch</span><span class="o">:</span> <span class="s1">'../data/nhl.json'</span><span class="p">,</span></div><div class="line" id="file-typeahead-sports-example-js-LC10">    <span class="nx">header</span><span class="o">:</span> <span class="s1">'&lt;h3 class="league-name"&gt;NHL Teams&lt;/h3&gt;'</span></div><div class="line" id="file-typeahead-sports-example-js-LC11">  <span class="p">}</span></div><div class="line" id="file-typeahead-sports-example-js-LC12"><span class="p">]);</span></div></pre>
+                            </td>
+                        </tr>
+                        </tbody></table>
+                </div>
+
+            </div>
+            <div class="gist-meta">
+                <a href="https://gist.github.com/jharding/4983546/raw/3565d83262a0edcc23538e2312d8ed33473da691/typeahead-sports-example.js" style="float:right">view raw</a>
+                <a href="https://gist.github.com/jharding/4983546#file-typeahead-sports-example-js">typeahead-sports-example.js</a>
+                hosted with ❤ by <a href="https://github.com">GitHub</a>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</div>
+
+
+</body>
+</html>

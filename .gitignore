@@ -1,6 +1,22 @@
+.DS_Store
+.gradle
+.idea
+.classpath
+.project
+.settings
+bin
+build
+target
+out
+*.iml
+*.ipr
+*.iws
+test-output
 *.class
-
-# Package Files #
-*.jar
-*.war
-*.ear
+mods
+pom.xml
+caches
+daemon
+splanet.iml
+splanet.ipr
+splanet.iws

@@ -1,0 +1,16 @@
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da185", "homeTeam" : "NYK", "awayTeam" : "OKC", "homeScore" : 94, "awayScore" : 123 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da186", "homeTeam" : "LAL", "awayTeam" : "MIA", "homeScore" : 95, "awayScore" : 101 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da187", "homeTeam" : "SAS", "awayTeam" : "HOU", "homeScore" : 98, "awayScore" : 111 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da188", "homeTeam" : "GSW", "awayTeam" : "LAC", "homeScore" : 105, "awayScore" : 103 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da189", "homeTeam" : "CLE", "awayTeam" : "ATL", "homeScore" : 125, "awayScore" : 127 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da190", "homeTeam" : "HOU", "awayTeam" : "MEM", "homeScore" : 100, "awayScore" : 92 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da191", "homeTeam" : "POR", "awayTeam" : "LAC", "homeScore" : 116, "awayScore" : 112 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da192", "homeTeam" : "BKN", "awayTeam" : "CHI", "homeScore" : 78, "awayScore" : 95 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da193", "homeTeam" : "DAL", "awayTeam" : "SAS", "homeScore" : 107, "awayScore" : 116 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da194", "homeTeam" : "MIA", "awayTeam" : "ATL", "homeScore" : 121, "awayScore" : 119 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da195", "homeTeam" : "MIA", "awayTeam" : "SAC", "homeScore" : 122, "awayScore" : 103 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da196", "homeTeam" : "MIA", "awayTeam" : "IND", "homeScore" : 97, "awayScore" : 94 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da197", "homeTeam" : "MIA", "awayTeam" : "UTH", "homeScore" : 117, "awayScore" : 94 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da198", "homeTeam" : "MIA", "awayTeam" : "CLE", "homeScore" : 107, "awayScore" : 114 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da199", "homeTeam" : "IND", "awayTeam" : "MIA", "homeScore" : 90, "awayScore" : 84 }
+{ "_id" : "39d6d76f-8572-4a33-a598-bc7dda1da200", "homeTeam" : "DET", "awayTeam" : "MIA", "homeScore" : 95, "awayScore" : 110 }
