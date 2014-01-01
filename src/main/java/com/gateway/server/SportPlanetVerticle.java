@@ -2,7 +2,6 @@ package com.gateway.server;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -127,7 +126,6 @@ public class SportPlanetVerticle extends Verticle {
                           result.put(json.getString("teamName"), json.getArray("games_id"));
                         }
                       }
-
                       return result;
                     }
                   });
@@ -140,13 +138,13 @@ public class SportPlanetVerticle extends Verticle {
                    xs0.map(new Func1<JsonArray, Observable<JsonArray>>() {
                      @Override
                      public Observable<JsonArray> call(final JsonArray array) {
-                       return searchSingle(createRecentResultsQuery0(array.iterator()), rxEventBus)
-                           .map(new Func1<RxMessage<JsonObject>, JsonArray>() {
-                             @Override
-                             public JsonArray call(RxMessage<JsonObject> jsonObjectRxMessage) {
-                               return jsonObjectRxMessage.body().getArray(MONGO_RESULT_FIELD);
-                             }
-                           });
+                       return searchSingle(createRecentResultsQuery(array.iterator()), rxEventBus)
+                        .map(new Func1<RxMessage<JsonObject>, JsonArray>() {
+                          @Override
+                          public JsonArray call(RxMessage<JsonObject> jsonObjectRxMessage) {
+                            return jsonObjectRxMessage.body().getArray(MONGO_RESULT_FIELD);
+                          }
+                        });
                      }
                    });
                   //merge Observable of Observable stream

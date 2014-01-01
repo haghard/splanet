@@ -21,7 +21,7 @@ public final class MongoQueries {
     return new JsonObject().putString("collection", "teams")
         .putString("action", "find")
         .putObject("matcher", new JsonObject()
-            .putString("query", " _id $in { " + strings.toString() + " }" ));
+            .putString("query", " _id $in { " + strings.toString() + " }"));
   }
 
   public static JsonObject createRecentIdsQuery(Iterator<String> teamNames) {
@@ -31,15 +31,7 @@ public final class MongoQueries {
             new JsonObject().putString("teamName", teamNames.next()));
   }
 
-
   public static JsonObject createRecentResultsQuery(Iterator<Object> teamNames) {
-    return new JsonObject().putString("collection", "results")
-        .putString("action", "find")
-        .putObject("matcher",
-            new JsonObject().putString("_id", teamNames.next().toString()));
-  }
-
-  public static JsonObject createRecentResultsQuery0(Iterator<Object> teamNames) {
     final StringBuilder ids = new StringBuilder();
     boolean first = true;
     while (teamNames.hasNext()) {
