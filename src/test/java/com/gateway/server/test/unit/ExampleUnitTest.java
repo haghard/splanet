@@ -1,8 +1,6 @@
 package com.gateway.server.test.unit;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.mongodb.*;
 import org.junit.Test;
 import org.vertx.java.core.json.JsonArray;
@@ -11,8 +9,6 @@ import rx.Observable;
 import rx.util.functions.Action1;
 import rx.util.functions.Func2;
 import rx.util.functions.FuncN;
-
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -172,5 +168,22 @@ public class ExampleUnitTest {
       }
     });
 
+  }
+
+  @Test
+  public void testMergeJsonArray() {
+    JsonArray a = new JsonArray()
+        .addObject(new JsonObject().putNumber("num", 1).putString("val", "Aaa"))
+        .addObject(new JsonObject().putNumber("num", 2).putString("val", "Bbb"));
+
+
+    JsonArray b = new JsonArray()
+        .addObject(new JsonObject().putNumber("num", 3).putString("val", "Ccc"))
+        .addObject(new JsonObject().putNumber("num", 4).putString("val", "Ddd"));
+
+    JsonArray c = a.addArray(b);
+
+    System.out.println(c.toString().replaceAll("\\[|]",""));
+    System.out.println(c);
   }
 }

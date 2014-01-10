@@ -1,6 +1,9 @@
 apply from: "gradle/vertx.gradle"
 apply plugin: 'idea'
 apply plugin: 'maven'
+apply plugin: 'scala'
+
+ext.scala_version = '2.10.3'
 
 /*
 Usage:
@@ -61,21 +64,20 @@ dependencies {
   */
 
   compile 'io.vertx:mod-mongo-persistor:2.1.1'
-  //compile  'io.vertx:mod-mongo-persistor:2.0.0-final'
-
-  //compile  'com.bloidonia:mod-jdbc-persistor:2.1'
-  //compile  'mysql:mysql-connector-java:5.1.26'
   compile 'com.google.guava:guava:15.0'
 
   compile 'io.vertx:mod-rxjava:1.0.0-beta3-SNAPSHOT'
 
   compile 'org.mongodb:mongo-java-driver:2.11.1'
 
+  //compile 'io.vertx:lang-scala:0.3.0'
+  //compile 'com.netflix.rxjava:rxjava-scala:0.16.0'
+  //compile  'io.vertx:mod-mongo-persistor:2.0.0-final'
+  //compile  'com.bloidonia:mod-jdbc-persistor:2.1'
+  //compile  'mysql:mysql-connector-java:5.1.26'
 
-  // If you're creating Groovy compiled verticles you may need the following dependencies
-  provided "org.codehaus.groovy:groovy-all:$groovyVersion"
-  provided "io.vertx:lang-groovy:$groovyLangModVersion@jar"
-
+  compile 'org.scala-lang:scala-library:2.10.3'
+  compile 'org.scala-lang:scala-compiler:2.10.3'
 
 }
 
@@ -84,11 +86,14 @@ test {
   include 'org/foo/**'
   exclude 'org/boo/**'
   */
-
 }
 
+sourceSets.main.scala.srcDir "src/main/java"
+sourceSets.main.java.srcDirs = []
+
 repositories {
-  jcenter()
+  //jcenter()
+  mavenCentral()
   mavenLocal()
 }
 
@@ -131,7 +136,7 @@ def configurePom(def pom) {
   pom.project {
     name rootProject.name
     description 'Description of your module here'
-    inceptionYear '2013'
+    inceptionYear '2014'
     packaging 'jar'
 
     url 'Your project url'
@@ -139,8 +144,8 @@ def configurePom(def pom) {
     developers {
       developer {
         id 'developer id (e.g. github username)'
-        name 'developer name'
-        email 'developer email'
+        name 'bondarev vadim'
+        email 'haghard84@gmail.com'
       }
     }
 
@@ -162,4 +167,4 @@ def configurePom(def pom) {
   }
 }
 
-//java -jar zip-service-0.1-fat.jar -cluster -conf ../../config.json
+//java -jar splanet-0.1-fat.jar -cluster -conf ../../config.json

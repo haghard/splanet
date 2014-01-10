@@ -31,15 +31,15 @@ public final class MongoQueries {
             new JsonObject().putString("teamName", teamNames.next()));
   }
 
-  public static JsonObject createRecentResultsQuery(Iterator<Object> teamNames) {
+  public static JsonObject createRecentResultsQuery(Iterator<Object> recentIds) {
     final StringBuilder ids = new StringBuilder();
     boolean first = true;
-    while (teamNames.hasNext()) {
+    while (recentIds.hasNext()) {
       if (first) {
-        ids.append("\"").append(teamNames.next().toString()).append("\"");
+        ids.append("\"").append(recentIds.next().toString()).append("\"");
         first = false;
       } else {
-        ids.append(',').append("\"").append(teamNames.next().toString()).append("\"");
+        ids.append(',').append("\"").append(recentIds.next().toString()).append("\"");
       }
     }
 
