@@ -76,8 +76,14 @@ dependencies {
   //compile  'com.bloidonia:mod-jdbc-persistor:2.1'
   //compile  'mysql:mysql-connector-java:5.1.26'
 
+  compile 'com.github.nscala-time:nscala-time_2.10:0.6.0'
+
   compile 'org.scala-lang:scala-library:2.10.3'
   compile 'org.scala-lang:scala-compiler:2.10.3'
+  compile 'org.jsoup:jsoup:1.7.2'
+
+  compile 'com.typesafe.akka:akka-actor_2.10:2.2.3'
+  compile 'com.typesafe:config:1.0.2'
 
 }
 
@@ -92,7 +98,7 @@ sourceSets.main.scala.srcDir "src/main/java"
 sourceSets.main.java.srcDirs = []
 
 repositories {
-  //jcenter()
+  mavenRepo(url: 'http://jcenter.bintray.com')
   mavenCentral()
   mavenLocal()
 }

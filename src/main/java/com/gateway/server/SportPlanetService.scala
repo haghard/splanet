@@ -38,7 +38,7 @@ object SportPlanetService {
   def apply(server: HttpServer, bus: RxEventBus, logger: Logger) = new SportPlanetService(server, bus, logger).config()
 }
 
-class SportPlanetService(val server: HttpServer, val bus: RxEventBus, val logger: Logger) {
+class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val logger: Logger) {
   import SportPlanetService._
 
   def config() = {
@@ -69,9 +69,9 @@ class SportPlanetService(val server: HttpServer, val bus: RxEventBus, val logger
         val passwordHash = SportPlanetService.hash(req.formAttributes().get(USER_PASSWORD))
 
         import exts.{ fnToFunc1, fnToAction1 }
-        val temp = bus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, createUserQuery(passwordHash, email)).flatMap { mes: RxMessage[JsonObject] =>
+        val temp = eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, createUserQuery(passwordHash, email)).flatMap { mes: RxMessage[JsonObject] =>
           val idArray = parseMessageToArray(mes, "followedTeams")
-          if (idArray.isDefined) { bus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, followedTeams(idArray.get.iterator)) }
+          if (idArray.isDefined) { eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, followedTeams(idArray.get.iterator)) }
           else { throw DBAccessException create(s"Response parse error [USER] : ${mes.body}") }
         }.subscribe( { mes: RxMessage[JsonObject] =>
             val resultLine = parseTeamMessage(mes)
@@ -95,11 +95,11 @@ class SportPlanetService(val server: HttpServer, val bus: RxEventBus, val logger
         val responseWriter = new ChunkedResponseWriter(req, new AtomicInteger(cleanTeams.size))
 
         val r = cleanTeams.map({ teamName =>
-          bus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultByTeam(teamName))
+          eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultByTeam(teamName))
         }) .map ({ ob: rx.Observable[RxMessage[JsonObject]] =>
           ob.flatMap({ mes: RxMessage[JsonObject] =>
             val gamesId = parseMessageToArray(mes, "games_id")
-            if (gamesId.isDefined) { bus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultsById(gamesId.get)) }
+            if (gamesId.isDefined) { eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultsById(gamesId.get)) }
             else { req.response.end; throw DBAccessException.create(s"Response parse error [RECENT GAMES ID] : ${mes.body}") }
           })
         }).map { ob: rx.Observable[RxMessage[JsonObject]] =>
