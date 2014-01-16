@@ -6,11 +6,10 @@ import java.io.File
 import org.vertx.java.core.buffer.Buffer
 import com.google.common.hash.Hashing
 import com.google.common.base.Charsets
-import org.vertx.java.core.json.{JsonArray, JsonObject}
+import org.vertx.java.core.json.JsonObject
 import io.vertx.rxcore.java.eventbus.{RxMessage, RxEventBus}
 import java.util.concurrent.atomic.AtomicInteger
 import com.gateway.server.exts._
-import MessageParsers._
 import QMongo._
 import java.net.{URLEncoder, URLDecoder}
 
@@ -45,7 +44,6 @@ class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val l
   def config() = {
     val router = new RouteMatcher
     import exts.fnToFunc1
-
     router get("/recent-stat/:team", fnToHandler1 { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         val teamName = URLDecoder decode(req.params.get("team"), "UTF-8")

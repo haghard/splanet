@@ -1,7 +1,7 @@
 package com.gateway.server
 
 import org.vertx.java.core.json.{JsonArray, JsonObject}
-import java.lang.StringBuilder
+import scala.StringBuilder
 
 object QMongo {
 
@@ -36,7 +36,9 @@ object QMongo {
 
   def recentStat(teamName: String): JsonObject = {
     new JsonObject().putString("collection", "result")
-      .putString("action", "find").putObject("matcher", new JsonObject()
+      .putString("action", "find")
+      .putObject("sort", new JsonObject().putNumber("dt", -1))
+      .putObject("matcher", new JsonObject()
         .putString("query", " $or : [ {\"homeTeam\": \"" + teamName + "\"" + " }, {\"awayTeam\": \"" + teamName + "\"" + " } ]" ))
   }
 
