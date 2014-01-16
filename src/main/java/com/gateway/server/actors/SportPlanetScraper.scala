@@ -3,7 +3,8 @@ package com.gateway.server.actors
 import akka.actor.{Props, ActorSystem}
 import com.typesafe.config.ConfigFactory
 import collection.JavaConversions._
-import ScraperRootActor.StartScraper
+import com.gateway.server.actors.ScraperRootActor.{StopScraper, StartScraper}
+import com.gateway.server.exts.{MongoConfig, runnableToFunc}
 
 object SportPlanetScraper {
 
@@ -15,8 +16,9 @@ object SportPlanetScraper {
     val url = config.getString("url")
     val statCollection = config.getString("statCollection")
 
-    val scraperActor = actorSystem actorOf(Props.apply(ScraperRootActor(teams, url, statCollection)), "ScraperActor")
+    val scraperActor = actorSystem actorOf(Props.apply(
+        ScraperRootActor(teams, url, statCollection, MongoConfig("192.168.0.143", 27017, "sportPlanet"))), "ScraperActor")
+
     scraperActor ! StartScraper
   }
-
 }

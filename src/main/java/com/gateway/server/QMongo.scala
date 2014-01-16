@@ -34,11 +34,17 @@ object QMongo {
       .putString("query", " _id $in { " + resultsLine.toString() + " }"))
   }
 
+  def recentStat(teamName: String): JsonObject = {
+    new JsonObject().putString("collection", "result")
+      .putString("action", "find").putObject("matcher", new JsonObject()
+        .putString("query", " $or : [ {\"homeTeam\": \"" + teamName + "\"" + " }, {\"awayTeam\": \"" + teamName + "\"" + " } ]" ))
+  }
+
   def recentResultByTeam(teamName: String): JsonObject = {
     new JsonObject().putString("collection", "recent")
       .putString("action", "find")
       .putObject("matcher",
-        new JsonObject().putString("teamName", teamName));
+        new JsonObject().putString("name", teamName));
   }
 
   def recentResultsById(recentIds: JsonArray): JsonObject = {
@@ -47,6 +53,7 @@ object QMongo {
     resultLine.append("\"").append(cleanLine).append("\"")
 
     new JsonObject().putString("collection", "results").putString("action", "find")
-      .putObject("matcher", new JsonObject().putString("query", "_id $in { " + resultLine.toString + " }"))
+       .putObject("sort", new JsonObject putNumber ("dt", 1))
+       .putObject("matcher", new JsonObject putString("query", "_id $in { " + resultLine.toString + " }"))
   }
 }

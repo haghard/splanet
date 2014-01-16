@@ -11,7 +11,7 @@ package object exts {
     override def handle(req: T) = f(req)
   }
 
-  implicit def fnToHandler1[T](f: T => Unit): Handler[T] = new Handler[T]() {
+  implicit def fnToHandler1[T](f: T => Any): Handler[T] = new Handler[T]() {
     override def handle(req: T) = f(req)
   }
 
@@ -31,9 +31,13 @@ package object exts {
     override def call(event: T) = fn(event)
   }
 
+  implicit def runnableToFunc(f: () => Unit): Runnable = new Runnable { def run() =  f() }
+
   trait ResponseWriter {
     def write(line: String)
   }
+
+  case class MongoConfig(ip: String, port: Int, db: String)
 
   class ChunkedResponseWriter(req: HttpServerRequest, threshold: AtomicInteger,
                               currentChuckNumber: AtomicInteger = new AtomicInteger) extends ResponseWriter {
