@@ -1,5 +1,12 @@
 (function (global, $, undefined) {
 
+    function fetchStatistic(team) {
+        var promise = $.ajax({
+            url: 'http://192.168.0.143:9000/recent-stat/' + team
+        }).promise();
+        return Rx.Observable.fromPromise(promise);
+    }
+
     function fetchRecent(team) {
         var promise = $.ajax({
             url: 'http://192.168.0.143:9000/recent/' + team
@@ -40,6 +47,19 @@
 
         //now we do n call each one for team
         var singletonArray = getCookieValue("followed-teams").split(urlEncode(","))
+
+
+        Rx.Observable.fromArray(singletonArray).flatMap(
+          function(team) {
+            return fetchStatistic(team);
+          }
+        ).subscribe(
+          function(data) {
+            var json = JSON.parse(data);
+            var line = json.team + " " + json.results
+            $("#FollowedTeams").append(line).append("   ")
+          }
+        )
 
         Rx.Observable.fromArray(singletonArray).flatMap(
            function(team) {

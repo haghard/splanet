@@ -76,6 +76,8 @@ dependencies {
   //compile  'com.bloidonia:mod-jdbc-persistor:2.1'
   //compile  'mysql:mysql-connector-java:5.1.26'
 
+  compile 'com.escalatesoft.subcut:subcut:2.0'
+
   compile 'com.github.nscala-time:nscala-time_2.10:0.6.0'
 
   compile 'org.scala-lang:scala-library:2.10.3'

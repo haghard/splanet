@@ -42,15 +42,6 @@
     window.onload = function () {
         if (!window.jQuery) {
             alert('jQuery not loaded');
-        } else {
-            var followedTeams = getFollowedTeams();
-            var cnt = 0
-            $(document).ready(function () {
-                $.each(followedTeams, function () {
-                    var item = ' <label> ' + this + ' </label> '
-                    $("#FollowedTeams").append(item);
-                });
-            });
         }
     }
 
@@ -76,14 +67,6 @@
         }
         return "Unknown";
     }
-
-   /*
-    function getRecent() {
-        $('.myButton').click(function () {
-
-        })
-    }
-    */
 
 </script>
 

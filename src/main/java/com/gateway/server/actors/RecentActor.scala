@@ -16,6 +16,8 @@ object RecentActor {
 
 class RecentActor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, val recentNum: Int) extends Actor with ActorLogging {
 
+  var mongoClient: MongoClient = _
+
   def receive: Actor.Receive = {
 
     case UpdateRecent(teamName) => {
@@ -23,8 +25,7 @@ class RecentActor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, 
         log.info(s"Start recent for ${teamName} ")
 
         val ids = new util.ArrayList[String](recentNum)
-
-        val mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
+        mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
         val db = mongoClient getDB (mongoConfig.db)
         val collection = db getCollection ("results")
 
@@ -55,6 +56,8 @@ class RecentActor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, 
 
       } catch {
         case ex => scraperRootActor ! UpdateCompiled(teamName, ex.getMessage)
+      } finally {
+        mongoClient close
       }
     }
   }

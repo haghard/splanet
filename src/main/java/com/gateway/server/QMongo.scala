@@ -34,12 +34,13 @@ object QMongo {
       .putString("query", " _id $in { " + resultsLine.toString() + " }"))
   }
 
-  def recentStat(teamName: String): JsonObject = {
-    new JsonObject().putString("collection", "result")
+  def recentStat(teamName: String, limit: Int): JsonObject = {
+    new JsonObject().putString("collection", "results")
       .putString("action", "find")
       .putObject("sort", new JsonObject().putNumber("dt", -1))
+      .putNumber("limit", limit)
       .putObject("matcher", new JsonObject()
-        .putString("query", " $or : [ {\"homeTeam\": \"" + teamName + "\"" + " }, {\"awayTeam\": \"" + teamName + "\"" + " } ]" ))
+        .putString("query", " $or : [ { homeTeam $eq \"" + teamName + "\"" + " }, { awayTeam $eq \"" + teamName + "\"" + " } ]" ))
   }
 
   def recentResultByTeam(teamName: String): JsonObject = {

@@ -6,6 +6,8 @@ import rx.util.functions.{Func1, Action1}
 import java.util.concurrent.atomic.AtomicInteger
 import io.vertx.rxcore.java.eventbus.RxMessage
 import org.vertx.java.core.json.{JsonArray, JsonObject}
+import com.google.common.collect.HashMultiset
+import com.escalatesoft.subcut.inject.BindingId
 
 package object exts {
 
@@ -33,43 +35,85 @@ package object exts {
     override def call(event: T) = fn(event)
   }
 
-  implicit def runnableToFunc(f: () => Unit): Runnable = new Runnable { def run() =  f() }
+  implicit def runnableToFunc(f: () => Unit): Runnable = new Runnable {
+    def run() = f()
+  }
 
-
+  val MONGO_RESULT_FIELD = "results"
 
   trait MongoResponseFieldParser0 extends ((RxMessage[JsonObject], String) => Option[String]) {
     override def apply(message: RxMessage[JsonObject], fieldName: String): Option[String] = {
       val array = for {
-        v <- Option(message.body().getArray(SportPlanetService.MONGO_RESULT_FIELD))
+        v <- Option(message.body().getArray(MONGO_RESULT_FIELD))
         if (v.size() > 0)
-      } yield v.get(0).asInstanceOf[JsonObject].getArray(fieldName)
-      if (array.isDefined)
+      } yield {
+        v.get(0).asInstanceOf[JsonObject].getArray(fieldName)
+      }
+      if (array.isDefined) {
         Some(array.get.toArray.mkString(","))
-      else None
+      }
+      else {
+        None
+      }
     }
   }
 
   trait MongoResponseParser1 extends (RxMessage[JsonObject] => Option[String]) {
     override def apply(message: RxMessage[JsonObject]): Option[String] = {
       for {
-        v <- Option(message.body().getArray(SportPlanetService.MONGO_RESULT_FIELD));
+        v <- Option(message.body().getArray(MONGO_RESULT_FIELD));
         if (v.size() > 0)
-      } yield v.toString.replaceAll("\\[|]", "")
+      } yield {
+        v.toString.replaceAll("\\[|]", "")
+      }
     }
   }
 
   trait MongoResponseFieldParser2 extends ((RxMessage[JsonObject], String) => Option[JsonArray]) {
     override def apply(message: RxMessage[JsonObject], fieldName: String): Option[JsonArray] = {
       for {
-        v <- Option(message.body().getArray(SportPlanetService.MONGO_RESULT_FIELD))
+        v <- Option(message.body().getArray(MONGO_RESULT_FIELD))
         if (v.size() > 0)
-      } yield v.get(0).asInstanceOf[JsonObject].getArray(fieldName)
+      } yield {
+        v.get(0).asInstanceOf[JsonObject].getArray(fieldName)
+      }
+    }
+  }
+
+  trait MongoResponseStatProcessor extends ((RxMessage[JsonObject], String) => Option[JsonObject]) {
+    override def apply(message: RxMessage[JsonObject], teamName: String): Option[JsonObject] = {
+      for {
+        v <- Option(message.body().getArray(MONGO_RESULT_FIELD))
+        if (v.size > 0)
+      } yield {
+        import scala.collection.JavaConversions.asScalaIterator
+        val recentResults: Iterator[AnyRef] = v.iterator
+
+        val stats = HashMultiset.create[String]()
+        recentResults foreach {
+          result =>
+            val r = result.asInstanceOf[JsonObject]
+            if (r.getNumber("homeScore").intValue() > r.getNumber("awayScore").intValue()) {
+              stats.add(r.getString("homeTeam"))
+            } else {
+              stats.add(r.getString("awayTeam"))
+            }
+        }
+        val win = stats.count(teamName)
+        val lose = stats.size - win
+        new JsonObject()
+          .putString("team", teamName).putString("results", Array(win, lose).mkString("-"))
+      }
     }
   }
 
   object ResponseFieldParser extends MongoResponseFieldParser0
+
   object ResponseParser extends MongoResponseParser1
+
   object ResponseFieldParserToArray extends MongoResponseFieldParser2
+
+  object RecentHealthProcessor extends MongoResponseStatProcessor
 
   trait ResponseWriter {
     def write(line: String)
@@ -82,11 +126,46 @@ package object exts {
 
     def write(line: String): Unit = currentChuckNumber.incrementAndGet() match {
       case n => {
-        if (n == 1) req.response().write("{ \"results\": [" + line)
-        else if (n > 1) req.response().write("," + line)
+        if (n == 1) {
+          req.response().write("{ \"results\": [" + line)
+        }
+        else if (n > 1) {
+          req.response().write("," + line)
+        }
 
-        if( n == threshold.get()) { req.response().end("] }") }
+        if (n == threshold.get()) {
+          req.response().end("] }")
+        }
       }
     }
   }
+
+  class DBAccessException(msg: String, th: Throwable) extends Exception(msg, th)
+
+  case class IllegalHttpReqParams(msg: String) extends Exception(msg)
+
+  object DBAccessException {
+    def create(msg: String) = new DBAccessException(msg, null)
+
+    def create(msg: String, cause: Throwable) = new DBAccessException(msg, cause)
+  }
+
+  object MongoPersistorKey extends BindingId
+
+  object MongoResponseArrayKey extends BindingId
+
+  object WebRootKey extends BindingId
+
+  object MongoHost extends BindingId
+
+  object MongoPort extends BindingId
+
+  object MongoDBName extends BindingId
+
+  object HttpServerPort extends BindingId
+
+  object ScraperUrl extends BindingId
+
+  object ScraperStatCollection extends BindingId
+
 }

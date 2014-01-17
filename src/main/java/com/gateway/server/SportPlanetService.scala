@@ -12,16 +12,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.gateway.server.exts._
 import QMongo._
 import java.net.{URLEncoder, URLDecoder}
+import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
 
 object SportPlanetService {
 
   val USER_EMAIL = "email"
 
   val USER_PASSWORD = "password"
-
-  val MONGO_RESULT_FIELD = "results"
-
-  val MONGO_MODULE_NAME = "mongo-persistor"
 
   val LOGIN_PAGE = "/examples/sportPlanet/login.html"
 
@@ -34,24 +31,35 @@ object SportPlanetService {
   def hash(password: String) = {
     Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
   }
-
-  def apply(server: HttpServer, bus: RxEventBus, logger: Logger) = new SportPlanetService(server, bus, logger) config
 }
 
-class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val logger: Logger) {
-  import SportPlanetService._
+import SportPlanetService._
+import com.gateway.server.exts.MongoPersistorKey
 
-  def config() = {
+class SportPlanetService(implicit val bindingModule: BindingModule) extends Injectable {
+  val server = inject [HttpServer]
+  val rxEventBus = inject [RxEventBus]
+  val logger = inject [Logger]
+
+  val pModule = inject [String](MongoPersistorKey)
+  val port = inject [Int](HttpServerPort)
+
+  def start = {
     val router = new RouteMatcher
+
+    /**
+     * Rest resource /recent-stat/:team
+     *
+     **/
     import exts.fnToFunc1
     router get("/recent-stat/:team", fnToHandler1 { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         val teamName = URLDecoder decode(req.params.get("team"), "UTF-8")
-        eventBus.send(MONGO_MODULE_NAME, recentStat(teamName))
-          .subscribe { mes: RxMessage[JsonObject] =>
-            logger.info(mes.body)
+        rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe { mes: RxMessage[JsonObject] =>
+          val statistic = RecentHealthProcessor(mes, teamName)
+          if (statistic.isDefined) req.response.end(RecentHealthProcessor(mes, teamName).get.toString)
+          else req.response.end("{}")
         }
-        req.response.end(teamName)
       }
     })
 
@@ -74,11 +82,11 @@ class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val l
         val responseWriter = new ChunkedResponseWriter(req, new AtomicInteger(1))
 
         val r = List(teamName).map({ teamName =>
-          eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultByTeam(teamName))
+          rxEventBus.send[JsonObject, JsonObject](pModule, recentResultByTeam(teamName))
         }) .map ({ ob: rx.Observable[RxMessage[JsonObject]] =>
           ob.flatMap({ mes: RxMessage[JsonObject] =>
             val gamesId = ResponseFieldParserToArray(mes, "games_id")
-            if (gamesId.isDefined) { eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultsById(gamesId.get)) }
+            if (gamesId.isDefined) { rxEventBus.send[JsonObject, JsonObject](pModule, recentResultsById(gamesId.get)) }
             else { req.response.end; throw DBAccessException.create(s"Response parse error [RECENT GAMES ID] : ${mes.body}") }
           })
         }) .map { ob: rx.Observable[RxMessage[JsonObject]] =>
@@ -124,11 +132,11 @@ class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val l
         val responseWriter = new ChunkedResponseWriter(req, new AtomicInteger(followedTeams.size))
 
         val r = followedTeams.map({ teamName =>
-          eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultByTeam(teamName))
+          rxEventBus.send[JsonObject, JsonObject](pModule, recentResultByTeam(teamName))
         }) .map ({ ob: rx.Observable[RxMessage[JsonObject]] =>
           ob.flatMap({ mes: RxMessage[JsonObject] =>
             val gamesId = ResponseFieldParserToArray(mes, "games_id")
-            if (gamesId.isDefined) { eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, recentResultsById(gamesId.get)) }
+            if (gamesId.isDefined) { rxEventBus.send[JsonObject, JsonObject](pModule, recentResultsById(gamesId.get)) }
             else { req.response.end; throw DBAccessException.create(s"Response parse error [RECENT GAMES ID] : ${mes.body}") }
           })
         }) .map { ob: rx.Observable[RxMessage[JsonObject]] =>
@@ -165,7 +173,7 @@ class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val l
         val passwordHash = hash(req.formAttributes.get(USER_PASSWORD))
 
         import exts.{ fnToAction1 }
-        val t = eventBus.send[JsonObject, JsonObject](MONGO_MODULE_NAME, createUserQuery(passwordHash, email))
+        val t = rxEventBus.send[JsonObject, JsonObject](pModule, createUserQuery(passwordHash, email))
         .subscribe({ mes: RxMessage[JsonObject] =>
           val followedTeams = ResponseFieldParser(mes, "followedTeams")
           req.response.headers.add("Set-Cookie", "auth-user=" + email)
@@ -182,13 +190,7 @@ class SportPlanetService(val server: HttpServer, val eventBus: RxEventBus, val l
     })
 
     server requestHandler(router)
-  }
 
-  class DBAccessException(msg: String, th : Throwable) extends Exception(msg, th)
-  case class IllegalHttpReqParams(msg: String) extends Exception(msg)
-
-  object DBAccessException {
-    def create(msg: String) = new DBAccessException(msg, null)
-    def create(msg: String, cause: Throwable) = new DBAccessException(msg, cause)
+    server listen(port)
   }
 }

@@ -3,7 +3,6 @@ package com.gateway.server;
 import io.vertx.rxcore.java.eventbus.RxEventBus;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
-import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
@@ -23,9 +22,15 @@ public class SportPlanetVerticle2 extends Verticle {
 
     deployMongoPersistor(container.config().getObject(MONGO_MODULE_NAME));
 
-    final RxEventBus rxEventBus = new RxEventBus(vertx.eventBus());
+    /*final RxEventBus rxEventBus = new RxEventBus(vertx.eventBus());
     final HttpServer server = SportPlanetService.apply(vertx.createHttpServer(), rxEventBus, container.logger());
-    server.listen(port);
+    server.listen(port);*/
+
+    final RxEventBus rxEventBus = new RxEventBus(vertx.eventBus());
+    new Application(vertx.createHttpServer(), rxEventBus,
+        container.config().getObject(MONGO_MODULE_NAME),
+        container.logger(),
+        port).start();
   }
 
   private void deployMongoPersistor(JsonObject config) {
