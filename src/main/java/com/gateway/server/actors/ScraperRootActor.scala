@@ -11,6 +11,7 @@ import java.util.Date
 import com.gateway.server.actors.RecentActor.{UpdateCompiled, UpdateRecent}
 import com.gateway.server.exts.{ScraperStatCollection, ScraperUrl, MongoConfig}
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
+import java.net.URLEncoder
 
 object ScraperRootActor {
 
@@ -30,7 +31,7 @@ object ScraperRootActor {
  */
 import ScraperActor._
 import ScraperRootActor._
-final class ScraperRootActor(val bindingModule: BindingModule) extends Actor with Injectable with ActorLogging with CollectionImplicits {
+final class ScraperRootActor(implicit val bindingModule: BindingModule) extends Actor with Injectable with ActorLogging with CollectionImplicits {
 
   val teamNames = inject [List[String]]
   val url = inject [String] (ScraperUrl)
@@ -40,8 +41,9 @@ final class ScraperRootActor(val bindingModule: BindingModule) extends Actor wit
   val scrapers = context.actorOf(Props.apply(new ScraperActor(self)).withRouter(SmallestMailboxRouter(5)), name = "ScraperActor")
   val recents = context.actorOf(Props.apply(new RecentActor(self, mongoConfig, 5)).withRouter(SmallestMailboxRouter(2)), name = "RecentActor")
 
-  var urls = List[String]()
-  var recentTeamNames = teamNames map { teamName => teamName replaceAll("%20"," ") }
+  var scheduledUrls = List[String]()
+  var scheduledTeamNames = List[String]()
+
   var teamsResults = List[BasicDBObject]()
   var targetCollection: DBCollection = _
   var db: com.mongodb.DB = _
@@ -76,8 +78,8 @@ final class ScraperRootActor(val bindingModule: BindingModule) extends Actor wit
         val lastScrapDt: Option[DateTime] = findLastScrapDt(db, statTableName)
 
         teamNames foreach { teamName =>
-          val url0 = MessageFormat.format(url, teamName)
-          self ! PrependUrl(teamName.replaceAll("%20"," "), url0, lastScrapDt getOrElse(DateTime.now - 10.years))
+          val url0 = MessageFormat.format(url, URLEncoder.encode(teamName, "UTF-8"))
+          self ! PrependUrl(teamName, url0, lastScrapDt getOrElse(DateTime.now - 10.years))
         }
       } catch {
         case ex => log.info("Mongo DB error" + ex.getMessage); self ! ScrapDone
@@ -85,7 +87,8 @@ final class ScraperRootActor(val bindingModule: BindingModule) extends Actor wit
     }
 
     case PrependUrl(teamName, url, lastScrapDt) => {
-      urls = url :: urls
+      scheduledUrls = url :: scheduledUrls
+      scheduledTeamNames = teamName :: scheduledTeamNames
       scrapers ! StartCollect(teamName, url, lastScrapDt)
     }
 
@@ -93,9 +96,9 @@ final class ScraperRootActor(val bindingModule: BindingModule) extends Actor wit
       if (map.values.head != Nil )
         teamsResults = map.values.head ::: teamsResults
 
-      urls = urls copyWithout(map.keys.head)
+      scheduledUrls = scheduledUrls copyWithout(map.keys.head)
 
-      if (urls.isEmpty)
+      if (scheduledUrls.isEmpty)
         self ! SaveResults(scrapDt)
     }
 
@@ -111,17 +114,17 @@ final class ScraperRootActor(val bindingModule: BindingModule) extends Actor wit
 
       mongoClient close
 
-      recentTeamNames foreach { teamName => recents ! UpdateRecent(teamName) }
+      scheduledTeamNames foreach { teamName => recents ! UpdateRecent(teamName) }
     }
 
     case UpdateCompiled(team, status) => {
       log.info(s"UpdateCompiled  ${team} ${status}")
-      recentTeamNames = recentTeamNames copyWithout(team)
+      scheduledTeamNames = scheduledTeamNames copyWithout(team)
 
-      if (recentTeamNames.isEmpty)
+      if (scheduledTeamNames.isEmpty)
         self ! ScrapDone
     }
 
-    case ScrapDone => { log.info("ScrapDone ScraperRootActor") }
+    case ScrapDone => log.info(s"ScrapDone ScraperRootActor ${scheduledTeamNames.size} ${scheduledUrls.size}")
   }
 }

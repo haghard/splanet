@@ -46,9 +46,9 @@ class ScraperActor(val scraperRootActor: ActorRef) extends Actor with ActorLoggi
 
   private def extractResult(teamName: String, url: String)(startDt: DateTime, endDt: DateTime): Future[Map[String, List[BasicDBObject]]] = future {
     import scala.collection.convert.WrapAsScala._
-
+    val correctUrl = url.replace("+", "%20")
     try {
-      val doc = Jsoup.connect(url).timeout(10000).get
+      val doc = Jsoup.connect(correctUrl).timeout(10000).get
       val table = doc.oneByClass("stat").toList
 
       val list = for {
@@ -91,7 +91,7 @@ class ScraperActor(val scraperRootActor: ActorRef) extends Actor with ActorLoggi
 
     } catch {
       case ex => {
-        log.info(url + ":" + ex.getMessage); Map(url -> Nil)
+        log.info(correctUrl + ":" + ex.getMessage); Map(url -> Nil)
       }
     }
   }

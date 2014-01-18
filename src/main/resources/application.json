@@ -2,19 +2,15 @@
 
     "url": "http://allbasketball.ru/teams/{0}.html",
 
-    "scrapPeriodInHour": 30,
+    "scrapPeriodInHour": 12,
 
-    "teams": ["Miami%20Heat", "Indiana%20Pacers", "Atlanta%20Hawks", "Philadelphia%2076ers", "Toronto%20Raptors", "Chicago%20Bulls", "Washington%20Wizards",
-    "Detroit%20Pistons", "Brooklyn%20Nets", "Charlotte%20Bobcats", "New%20York%20Knicks", "Cleveland%20Cavaliers", "Boston%20Celtics", "Orlando%20Magic",
-    "Milwaukee%20Bucks", "San%20Antonio%20Spurs", "Oklahoma%20City%20Thunder", "Portland%20Trail%20Blazers", "Los%20Angeles%20Clippers", "Golden%20State%20Warriors",
-    "Houston%20Rockets", "Phoenix%20Suns", "Dallas%20Mavericks", "Denver%20Nuggets", "Minnesota%20Timberwolves", "Memphis%20Grizzlies", "New%20Orleans%20Pelicans",
-    "Los%20Angeles%20Lakers", "Sacramento%20Kings", "Utah%20Jazz"],
+    "teams": ["Miami Heat", "Indiana Pacers", "Atlanta Hawks", "Philadelphia 76ers", "Toronto Raptors", "Chicago Bulls", "Washington Wizards",
+        "Detroit Pistons", "Brooklyn Nets", "Charlotte Bobcats", "New York Knicks", "Cleveland Cavaliers", "Boston Celtics", "Orlando Magic",
+        "Milwaukee Bucks", "San Antonio Spurs", "Oklahoma City Thunder", "Portland Trail Blazers", "Los Angeles Clippers", "Golden State Warriors",
+        "Houston Rockets", "Phoenix Suns", "Dallas Mavericks", "Denver Nuggets", "Minnesota Timberwolves", "Memphis Grizzlies", "New Orleans Pelicans",
+        "Los Angeles Lakers", "Sacramento Kings", "Utah Jazz"],
 
     "statCollection": "scrapStat",
-
-    "results": {
-      "folder": "/Users/sap1ens/test"
-    },
 
     "akka" : {
       "loglevel": "DEBUG"

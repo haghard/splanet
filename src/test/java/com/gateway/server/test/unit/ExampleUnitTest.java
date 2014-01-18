@@ -1,7 +1,6 @@
 package com.gateway.server.test.unit;
 
 import com.google.common.base.Joiner;
-import com.mongodb.*;
 import org.junit.Test;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
@@ -15,93 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ExampleUnitTest {
-
-  /*@Test
-  public void testVerticle() {
-    SportPlanetVerticle vert = new SportPlanetVerticle();
-
-    // Interrogate your classes directly....
-    assertNotNull(vert);
-  }*/
-
-
-  /*@Test
-  public void testMongo() throws UnknownHostException {
-    final MongoClient mongo = new MongoClient("localhost", 27017);
-
-    final DB db = mongo.getDB("test_db");
-
-    final DBCollection collection = db.getCollection("test");
-    final String[] ids = {"39d6d76f-8572-4a33-a598-bc7dda1da180", "39d6d76f-8572-4a33-a598-bc7dda1da181"};
-
-    double d = 56.78;
-
-    float f = 56.78f;
-
-    Float fl = 6f;
-
-    Map<String, Object> q = ImmutableMap.<String, Object>of(
-        "fnum", f );
-
-        //"_id", new BasicDBObject("$in", new String[] { "52be80044ac32b424d50bc5b", "52be80044ac32b424d50bc5c" } ));
-
-        //"num", new BasicDBObject("$gt", 5).append("$lt", 57));
-        *//*,
-        "num2", new BasicDBObject("$gt", 99),
-        "name", "Aaa");*//*
-
-    BasicDBObject query = new BasicDBObject(q);
-
-        *//*"num", new BasicDBObject("$gt", 5).append("$lt", 10))
-        .append("name", "Aaa");*//*
-
-
-    //BasicDBObject query = new BasicDBObject("num", new BasicDBObject("$gt", 5)).append("$lt", 10);
-
-    System.out.println(query);
-    final DBCursor cursor = collection.find(query);
-
-    while(cursor.hasNext()) {
-      System.out.println(cursor.next());
-    }
-
-    cursor.close();
-
-    *//*JsonArray ids1 = new JsonArray();
-    ids1.addString(ids[0]);
-    ids1.addString(ids[1]);
-
-    JsonObject matcher = new JsonObject();
-    matcher.putString("query", "field1 $gt 5 $lt 10 and field1 $in [\"1\",\"2\"]");
-
-    JsonObject q = new JsonObject()
-        .putString("collection", "teams")
-        .putString("action", "find")
-        .putObject("matcher", matcher);
-
-
-    //System.out.println(matcher.toMap());
-
-    for (Object o: matcher.toMap().values()) {
-      if (Map.class.isAssignableFrom(o.getClass())) {
-        Map casted = (Map)o;
-        System.out.println(casted.values());
-      } else {
-        System.out.println(o);
-      }
-    }
-
-    final DBCursor cursor =  collection.find(jsonToDBObject(matcher));
-    while(cursor.hasNext()) {
-      System.out.println(cursor.next());
-    }
-
-    cursor.close();*//*
-  }*/
-
-  private DBObject jsonToDBObject(JsonObject object) {
-    return new BasicDBObject(object.toMap());
-  }
 
   @Test
   public void testMerge() {

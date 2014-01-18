@@ -8,6 +8,7 @@ import NewBindingModule.newBindingModule
 import com.gateway.server.exts._
 import org.vertx.java.core.json.JsonObject
 import com.gateway.server.actors.ScraperApplication
+import com.typesafe.config.ConfigFactory
 
 class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: JsonObject, val logger: Logger, val httpPort: Int) {
 
@@ -22,21 +23,30 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
 
         bind[String].idBy(MongoPersistorKey).toSingle("mongo-persistor")
         bind[String].idBy(MongoResponseArrayKey).toSingle("results")
-
         bind[Int].idBy(HttpServerPort).toSingle(httpPort)
     }
 
-    val mongoModule = newBindingModule {
+    val config = ConfigFactory load
+
+    val scraperModule = newBindingModule {
       module =>
         import module._
-        bind[String].idBy(MongoHost).toSingle(persistCfg getString("host"))
-        bind[Int].idBy(MongoPort).toSingle(persistCfg.getNumber("port").intValue)
-        bind[String].idBy(MongoDBName).toSingle(persistCfg getString("db_name"))
+        import collection.JavaConversions._
+        import scala.concurrent.duration._
+
+        bind[List[String]].toSingle(config.getStringList("teams").toList)
+        bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
+        bind[String].idBy(ScraperStatCollection).toSingle(config getString ("statCollection"))
+        bind[MongoConfig].toSingle(MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name")))
+
+        //bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") hours)
+        bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") hours)
+        bind[FiniteDuration].idBy(ScraperPeriod).toSingle(config getInt ("scrapPeriodInHour") hours)
     }
 
     implicit val spModule = newBindingModule { module =>
         module <~ httpModule
-        module <~ mongoModule
+        module <~ scraperModule
     }
 
     new SportPlanetService().start
