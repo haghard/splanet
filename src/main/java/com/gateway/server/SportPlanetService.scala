@@ -63,6 +63,26 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       }
     })
 
+    router get("/auth", fnToHandler1 { req: HttpServerRequest =>
+      req bodyHandler { buffer: Buffer =>
+        val email = req.params.get("email")
+        val passwordHash = hash(req.params.get("password"))
+        rxEventBus.send[JsonObject, JsonObject](pModule, createUserQuery(passwordHash, email))
+          .subscribe({ mes: RxMessage[JsonObject] =>
+            val followedTeams = ResponseFieldParser(mes, "followedTeams")
+            val ft = URLEncoder.encode(followedTeams getOrElse(
+                throw DBAccessException create(s"Response parse error [USER-followedTeams] : ${mes.body}")), "UTF-8")
+
+          req.response.end(new JsonObject()
+            .putString("status", "ok")
+            .putString("user", email)
+            .putString("followed-teams", ft).toString)
+        }, {
+          th: Throwable => logger.info(th.getMessage)
+            req.response.end(new JsonObject().putString("status","error").toString)
+        })
+      }
+    })
     /**
      * Rest resource /recent/:followedTeam
      * Return recent games by single team
@@ -168,7 +188,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       req.bodyHandler({ buffer: Buffer =>
         if (!buffer.getString(0, buffer.length).matches("email=[\\w]+&password+=[\\w]+"))
           req.response.sendFile(WEBROOT + LOGIN_FAILED_PAGE)
-
         val email = req.formAttributes.get(USER_EMAIL)
         val passwordHash = hash(req.formAttributes.get(USER_PASSWORD))
 
@@ -187,7 +206,8 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             req.response.sendFile(WEBROOT + LOGIN_FAILED_PAGE)
         })
       })
-    })
+    }
+    )
 
     server requestHandler(router)
 

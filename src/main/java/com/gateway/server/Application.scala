@@ -39,7 +39,6 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         bind[String].idBy(ScraperStatCollection).toSingle(config getString ("statCollection"))
         bind[MongoConfig].toSingle(MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name")))
 
-        //bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") hours)
         bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") hours)
         bind[FiniteDuration].idBy(ScraperPeriod).toSingle(config getInt ("scrapPeriodInHour") hours)
     }
