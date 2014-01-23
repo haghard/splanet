@@ -16,13 +16,30 @@ import java.util.Map;
 public class ExampleUnitTest {
 
   @Test
+  public void testReduce() {
+    Observable.from(new Integer[] {1,2,3,4}).reduce(new Func2<Integer, Integer, Integer>() {
+      @Override
+      public Integer call(Integer f, Integer s) {
+        return f + s;
+      }
+    }).subscribe(new Action1<Integer>() {
+      @Override public void call(Integer s) {
+        System.out.println("Reduce" + s);
+      }
+    });
+
+    System.out.println(new JsonObject().mergeIn(new JsonObject().putString("b", "2")));
+    System.out.println(new JsonObject().putString("b", "2").mergeIn(new JsonObject()));
+    System.out.println(new JsonObject().putString("a", "1").mergeIn(new JsonObject().putString("a", "2")));
+  }
+
+  @Test
   public void testMerge() {
 
     Observable<Integer> f = Observable.from(1);
     Observable<Integer> s = Observable.from(2);
     Observable<Integer> t = Observable.from(3);
     Observable<Integer> h = Observable.from(4);
-
 
     Observable.merge(f, s, t, h).aggregate(null, new Func2<String, Integer, String>() {
       @Override

@@ -2,7 +2,7 @@ package com.gateway.server
 
 import org.vertx.java.core.http.{HttpServerRequest, HttpServerResponse}
 import org.vertx.java.core.Handler
-import rx.util.functions.{Func1, Action1}
+import rx.util.functions.{Func2, Func1, Action1}
 import java.util.concurrent.atomic.AtomicInteger
 import io.vertx.rxcore.java.eventbus.RxMessage
 import org.vertx.java.core.json.{JsonArray, JsonObject}
@@ -17,6 +17,10 @@ package object exts {
 
   implicit def fnToHandler1[T](f: T => Any): Handler[T] = new Handler[T]() {
     override def handle(req: T) = f(req)
+  }
+
+  implicit def fnToFunc2[R, T](f: (R, T) => R): Func2[R, T, R] = new Func2[R,T,R]() {
+    override def call(first: R, second: T) = f(first, second)
   }
 
   implicit def fnToAction1[T](fn: T => HttpServerResponse): Action1[T] = new Action1[T]() {
@@ -40,6 +44,31 @@ package object exts {
   }
 
   val MONGO_RESULT_FIELD = "results"
+
+  import scala.collection.JavaConverters._
+  def reduceFunc = { ( a: JsonObject, message: RxMessage[JsonObject] ) =>
+    a.getArray(MONGO_RESULT_FIELD).size match {
+      case 0 => message.body
+      case 30 => {
+        val newArray = message.body.getArray(MONGO_RESULT_FIELD)
+        val curArray = a.getArray(MONGO_RESULT_FIELD)
+        val newIter: Iterator[AnyRef] = newArray.iterator.asScala
+        val curIter: Iterator[AnyRef] = curArray.iterator.asScala
+
+        val returnArray = for { (n, c) <- newIter zip curIter } yield {
+          val newObj = n.asInstanceOf[JsonObject]
+          val curObj = c.asInstanceOf[JsonObject]
+          new JsonObject()
+            .putString("_id", curObj.getString("_id"))
+            .putNumber("value", newObj.getNumber("value").intValue + curObj.getNumber("value").intValue)
+        }
+
+        new JsonObject().putArray(MONGO_RESULT_FIELD,
+          returnArray.foldLeft(new JsonArray()) { (acc: JsonArray, cur: JsonObject) => acc.add(cur) })
+      }
+      case other => throw new IllegalArgumentException("Standing size should be equals to 30 but found" + other)
+    }
+  }
 
   trait MongoResponseFieldParser0 extends ((RxMessage[JsonObject], String) => Option[String]) {
     override def apply(message: RxMessage[JsonObject], fieldName: String): Option[String] = {
@@ -170,4 +199,13 @@ package object exts {
 
   object ScraperPeriod extends BindingId
   object ScraperDelay extends BindingId
+
+
+  val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
+  val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit( this.awayTeam, 1 ); }"
+  val homeLoseMap = "function () { if (this.homeScore < this.awayScore) emit( this.homeTeam, 1 ); }"
+  val awayLoseMap = "function () { if (this.homeScore > this.awayScore) emit( this.awayTeam, 1 ); }"
+
+  val reduce = "function (key, values) { return Array.sum(values) }"
+
 }

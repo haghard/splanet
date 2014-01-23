@@ -1,18 +1,21 @@
 package com.gateway.server
 
-import org.vertx.java.core.http.{HttpServerRequest, RouteMatcher, HttpServer}
-import org.vertx.java.core.logging.Logger
+import QMongo._
 import java.io.File
+import org.vertx.java.core.logging.Logger
 import org.vertx.java.core.buffer.Buffer
 import com.google.common.hash.Hashing
 import com.google.common.base.Charsets
-import org.vertx.java.core.json.JsonObject
-import io.vertx.rxcore.java.eventbus.{RxMessage, RxEventBus}
 import java.util.concurrent.atomic.AtomicInteger
 import com.gateway.server.exts._
-import QMongo._
 import java.net.{URLEncoder, URLDecoder}
+import scala.collection.JavaConverters._
+import scala.util.{Failure, Try, Success}
+import com.gateway.server.exts.IllegalHttpReqParams
+import org.vertx.java.core.json.{JsonArray, JsonObject}
+import io.vertx.rxcore.java.eventbus.{RxMessage, RxEventBus}
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
+import org.vertx.java.core.http.{HttpServerRequest, RouteMatcher, HttpServer}
 
 object SportPlanetService {
 
@@ -27,6 +30,9 @@ object SportPlanetService {
   val LOGIN_FAILED_PAGE = "/examples/sportPlanet/login_failed.html";
 
   val WEBROOT = new File(".").getAbsolutePath.replace(".", "") + "web/bootstrap"
+
+  val wins = Iterable("homeWin", "awayWin")
+  val lose = Iterable("homeLose", "awayLose")
 
   def hash(password: String) = {
     Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
@@ -79,10 +85,45 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             .putString("followed-teams", ft).toString)
         }, {
           th: Throwable => logger.info(th.getMessage)
-            req.response.end(new JsonObject().putString("status","error").toString)
+          req.response.end(new JsonObject().putString("status","error").toString)
         })
       }
     })
+
+    /**
+     *  Rest resource /standing/:flag
+     *  http://192.168.0.143:9000/standing/wins
+     *  http://192.168.0.143:9000/standing/lose
+     **/
+    router get("/standing/:flag", fnToHandler1 { req: HttpServerRequest =>
+      req bodyHandler { buffer: Buffer =>
+        val flag = req.params.get("flag")
+
+        def request(col: Iterable[String]): rx.Observable[JsonObject] = {
+          rx.Observable.merge(col.map { collectionName =>
+            rxEventBus.send[JsonObject, JsonObject](pModule, standingQuery(collectionName))
+          } .asJava)
+            .reduce(new JsonObject().putArray("results", new JsonArray()), reduceFunc)
+        }
+
+        val ob: Try[rx.Observable[JsonObject]] = flag match {
+          case "wins" => Success(request(wins))
+          case "lose" => Success(request(lose))
+          case e => Failure(new IllegalArgumentException("unexpected param in request " + e))
+        }
+
+        ob match {
+          case Success(ob) => ob.subscribe { message : JsonObject => req.response().end(message.toString) }
+          case Failure(er) => { logger.info(er.getMessage);
+            req.response.end(new JsonObject()
+              .putString("status","error")
+              .putString("message", er.getMessage)
+              .toString)
+          }
+        }
+      }
+    })
+
     /**
      * Rest resource /recent/:followedTeam
      * Return recent games by single team

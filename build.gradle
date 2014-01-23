@@ -71,7 +71,6 @@ dependencies {
   compile 'org.mongodb:mongo-java-driver:2.11.1'
 
   //compile 'io.vertx:lang-scala:0.3.0'
-  //compile 'com.netflix.rxjava:rxjava-scala:0.16.0'
   //compile  'io.vertx:mod-mongo-persistor:2.0.0-final'
   //compile  'com.bloidonia:mod-jdbc-persistor:2.1'
   //compile  'mysql:mysql-connector-java:5.1.26'
@@ -86,6 +85,8 @@ dependencies {
 
   compile 'com.typesafe.akka:akka-actor_2.10:2.2.3'
   compile 'com.typesafe:config:1.0.2'
+
+  compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
 
 }
 

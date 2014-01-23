@@ -2,8 +2,24 @@ package com.gateway.server
 
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import scala.StringBuilder
+import com.mongodb.MapReduceCommand
 
 object QMongo {
+
+  /**
+   * homeWinMap
+   * awayWinMap
+   * homeLoseMap
+   * awayLoseMap
+   *
+   * @param collectionName
+   * @return
+   */
+  def standingQuery(collectionName: String): JsonObject = {
+    new JsonObject().putString("collection", collectionName)
+      .putString("action", "find")
+      .putObject("sort", new JsonObject().putNumber("_id", -1))
+  }
 
   def createUserQuery(passwordHash: String, email: String): JsonObject = {
     new JsonObject().putString("collection", "users")
