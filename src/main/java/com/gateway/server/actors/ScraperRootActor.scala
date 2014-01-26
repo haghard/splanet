@@ -25,15 +25,13 @@ object ScraperRootActor {
 
   case class RemoveResultList(url: String)
 
-  val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
-  val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit( this.awayTeam, 1 ); }"
-  val homeLoseMap = "function () { if (this.homeScore < this.awayScore) emit( this.homeTeam, 1 ); }"
-  val awayLoseMap = "function () { if (this.homeScore > this.awayScore) emit( this.awayTeam, 1 ); }"
-
+  val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit(this.homeTeam, 1); }"
+  val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit(this.awayTeam, 1); }"
+  val homeLoseMap = "function () { if (this.homeScore < this.awayScore) emit(this.homeTeam, 1); }"
+  val awayLoseMap = "function () { if (this.homeScore > this.awayScore) emit(this.awayTeam, 1); }"
   val reduce = "function (key, values) { return Array.sum(values) }"
 
   val standingMeasurement = Map("homeWin" -> homeWinMap, "homeLose" -> homeLoseMap, "awayWin" -> awayWinMap, "awayLose" -> awayLoseMap)
-  
 }
 
 /**
@@ -124,7 +122,7 @@ final class ScraperRootActor(implicit val bindingModule: BindingModule) extends 
 
       // recreate statistics
       val results = db getCollection("results")
-      for ( (k, v) <- standingMeasurement) {
+      for ((k, v) <- standingMeasurement) {
         db getCollection(k) drop
         val mapReduceCommand = new MapReduceCommand(results, v, reduce, k, MapReduceCommand.OutputType.REPLACE, null)
         results mapReduce mapReduceCommand

@@ -46,12 +46,42 @@ package object exts {
   val MONGO_RESULT_FIELD = "results"
 
   import scala.collection.JavaConverters._
-  def reduceFunc = { ( a: JsonObject, message: RxMessage[JsonObject] ) =>
-    a.getArray(MONGO_RESULT_FIELD).size match {
+  def reduceByMetrics = {( json: JsonObject, message: RxMessage[JsonObject] ) =>
+    val collection = message.body.getString("collection")
+    json getArray(MONGO_RESULT_FIELD) size match {
+      case 0 => {
+        val arrayIter = message.body.getArray(MONGO_RESULT_FIELD).iterator.asScala
+        val returned = for( j <- arrayIter ) yield {
+          val jsObject = j.asInstanceOf[JsonObject]
+          new JsonObject()
+            .putString("team", jsObject.getString("_id"))
+            .putNumber(collection, jsObject.getNumber("value"))
+        }
+        new JsonObject().putArray(MONGO_RESULT_FIELD,
+          returned.foldLeft(new JsonArray()) { (acc: JsonArray, cur: JsonObject) => acc.add(cur) })
+      }
+      case 30 => {
+        val messageIter: Iterator[AnyRef] = message.body.getArray(MONGO_RESULT_FIELD).iterator.asScala
+        val prevIter: Iterator[AnyRef] = json.getArray(MONGO_RESULT_FIELD).iterator.asScala
+
+        val returned = for { (m, p) <- messageIter zip prevIter } yield {
+          val messageObj = m.asInstanceOf[JsonObject]
+          val prevObj = p.asInstanceOf[JsonObject]
+          prevObj.putNumber(collection, messageObj getNumber("value"))
+        }
+        new JsonObject().putArray(MONGO_RESULT_FIELD,
+          returned.foldLeft(new JsonArray()) { (acc: JsonArray, cur: JsonObject) => acc.add(cur) })
+      }
+      case other => throw new IllegalArgumentException("Standing size should be equals to 30 but found" + other)
+    }
+  }
+
+  def reduceAll = { ( json: JsonObject, message: RxMessage[JsonObject] ) =>
+    json getArray(MONGO_RESULT_FIELD) size match {
       case 0 => message.body
       case 30 => {
         val newArray = message.body.getArray(MONGO_RESULT_FIELD)
-        val curArray = a.getArray(MONGO_RESULT_FIELD)
+        val curArray = json.getArray(MONGO_RESULT_FIELD)
         val newIter: Iterator[AnyRef] = newArray.iterator.asScala
         val curIter: Iterator[AnyRef] = curArray.iterator.asScala
 
@@ -199,13 +229,4 @@ package object exts {
 
   object ScraperPeriod extends BindingId
   object ScraperDelay extends BindingId
-
-
-  val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
-  val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit( this.awayTeam, 1 ); }"
-  val homeLoseMap = "function () { if (this.homeScore < this.awayScore) emit( this.homeTeam, 1 ); }"
-  val awayLoseMap = "function () { if (this.homeScore > this.awayScore) emit( this.awayTeam, 1 ); }"
-
-  val reduce = "function (key, values) { return Array.sum(values) }"
-
 }

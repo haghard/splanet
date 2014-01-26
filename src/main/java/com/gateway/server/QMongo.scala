@@ -2,10 +2,22 @@ package com.gateway.server
 
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import scala.StringBuilder
-import com.mongodb.MapReduceCommand
 
 object QMongo {
 
+  def topResults(limit: Int) = {
+    new JsonObject()
+      .putString("collection", "results")
+      .putString("action", "find")
+      .putObject("sort", new JsonObject().putNumber("dt", -1))
+      .putNumber("limit", limit)
+  }
+
+  def conferenceQuery = {
+    new JsonObject()
+      .putString("collection", "conference")
+      .putString("action", "find")
+  }
   /**
    * homeWinMap
    * awayWinMap

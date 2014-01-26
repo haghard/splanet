@@ -4,8 +4,7 @@ import org.junit.{Ignore, Test}
 import com.gateway.server.actors.ScraperApplication
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.gateway.server.exts._
-import com.gateway.server.exts.MongoConfig
-import com.mongodb.{BasicDBObjectBuilder, MapReduceCommand, MongoClient}
+import com.mongodb.{MapReduceCommand, MongoClient}
 import scala.Predef._
 import com.gateway.server.exts.MongoConfig
 
@@ -43,10 +42,7 @@ class ActorsTest {
     }
 
     val map = Map("A" -> (3,1), "B" -> (6,1))
-
-    println(
-      map.toSeq.sortWith { _._2._1 > _._2._1 }
-    )
+    val s0 = map.toSeq.sortWith { _._2._1 > _._2._1 }*/
   }
 
   //@Test
@@ -78,7 +74,42 @@ class ActorsTest {
     val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit( this.awayTeam, 1 ); }"
     val homeLoseMap = "function () { if (this.homeScore < this.awayScore) emit( this.homeTeam, 1 ); }"
     val awayLoseMap = "function () { if (this.homeScore > this.awayScore) emit( this.awayTeam, 1 ); }"
-    val reduce = "function (key, values) { return Array.sum(values) }"
+
+    val reduce0 = "function (key, values) { return Array.sum(values) }; "
+
+    val reduce = "function (key, values) {var dict={}; " +
+      "dict[\"Indiana Pacers\"]=\"e\";" +
+      "dict[\"Miami Heat\"]=\"e\";" +
+      "dict[\"Atlanta Hawks\"]=\"e\";" +
+      "dict[\"Toronto Raptors\"]=\"e\";" +
+      "dict[\"Chicago Bulls\"]=\"e\";" +
+      "dict[\"Washington Wizards\"]=\"e\";" +
+      "dict[\"Charlotte Bobcats\"]=\"e\";" +
+      "dict[\"Brooklyn Nets\"]=\"e\";" +
+      "dict[\"Detroit Pistons\"]=\"e\";" +
+      "dict[\"New York Knicks\"]=\"e\";" +
+      "dict[\"Cleveland Cavaliers\"]=\"e\";" +
+      "dict[\"Boston Celtics\"]=\"e\";" +
+      "dict[\"Philadelphia 76ers\"]=\"e\";" +
+      "dict[\"Orlando Magic\"]=\"e\";" +
+      "dict[\"Milwaukee Bucks\"]=\"e\";" +
+      "dict[\"Oklahoma City Thunder\"]=\"w\";" +
+      "dict[\"San Antonio Spurs\"]=\"w\";" +
+      "dict[\"Portland Trail Blazers\"]=\"w\";" +
+      "dict[\"Los Angeles Clippers\"]=\"w\";" +
+      "dict[\"Houston Rockets\"]=\"w\";" +
+      "dict[\"Golden State Warriors\"]=\"w\";" +
+      "dict[\"Dallas Mavericks\"]=\"w\";" +
+      "dict[\"Phoenix Suns\"]=\"w\";" +
+      "dict[\"Minnesota Timberwolves\"]=\"w\";" +
+      "dict[\"Denver Nuggets\"]=\"w\";" +
+      "dict[\"Memphis Grizzlies\"]=\"w\";" +
+      "dict[\"Los Angeles Lakers\"]=\"w\";" +
+      "dict[\"New Orleans Pelicans\"]=\"w\";" +
+      "dict[\"Sacramento Kings\"]=\"w\";" +
+      "dict[\"Utah Jazz\"]=\"w\";" +
+      "return { c: Array.sum(values), conf: dict[key] } ; }"
+
     val standingMeasurement = Map("homeWin" -> homeWinMap, "homeLose" -> awayWinMap, "awayWin" -> homeLoseMap, "awayLose" -> awayLoseMap)
 
     val mongo = new MongoClient("192.168.0.143", 27017)
