@@ -12,7 +12,7 @@ import scala.util.Success
 import scala.collection.immutable.Map
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object ScraperActor {
+object WebGetter {
 
   case class StartCollect(teamName: String, url: String, lastScrapDt: DateTime)
 
@@ -22,9 +22,9 @@ object ScraperActor {
 
 }
 
-class ScraperActor(val scraperRootActor: ActorRef) extends Actor with ActorLogging with ParserImplicits {
+class WebGetter(val scraperRootActor: ActorRef) extends Actor with ActorLogging with ParserImplicits {
 
-  import ScraperActor._
+  import WebGetter._
   import scala.collection.immutable.Map
   import com.github.nscala_time.time.Imports._
 

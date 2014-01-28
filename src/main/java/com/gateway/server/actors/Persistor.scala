@@ -1,12 +1,12 @@
 package com.gateway.server.actors
 
 import akka.actor.{ActorRef, ActorLogging, Actor}
-import com.gateway.server.actors.RecentActor.{UpdateCompiled, UpdateRecent}
+import com.gateway.server.actors.Persistor.{UpdateCompiled, UpdateRecent}
 import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
 import java.util
 import com.gateway.server.exts.MongoConfig
 
-object RecentActor {
+object Persistor {
 
   case class UpdateRecent(teamName: String)
 
@@ -14,7 +14,7 @@ object RecentActor {
 
 }
 
-class RecentActor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, val recentNum: Int) extends Actor with ActorLogging {
+class Persistor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, val recentNum: Int) extends Actor with ActorLogging {
 
   var mongoClient: MongoClient = _
 

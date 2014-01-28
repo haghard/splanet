@@ -10,8 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.gateway.server.exts._
 import java.net.{URLEncoder, URLDecoder}
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Try, Success}
-import com.gateway.server.exts.IllegalHttpReqParams
+import scala.util.Try
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import io.vertx.rxcore.java.eventbus.{RxMessage, RxEventBus}
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
@@ -307,8 +306,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     Option(req.headers.get("Authorization")).map { v => v match {
         case BasicHeader(base64) => {
           try {
-            //import org.apache.commons.codec.binary.Base64
-            //new String(Base64.decodeBase64(base64))
             new String(BaseEncoding.base64().decode(base64)).split(":", 2) match {
               case Array(username, password) => Right(username -> password)
               case _ => Left("Invalid basic auth 1")

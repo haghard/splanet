@@ -8,7 +8,7 @@ import com.mongodb._
 import com.github.nscala_time.time.Imports._
 import scala.Some
 import java.util.Date
-import com.gateway.server.actors.RecentActor.{UpdateCompiled, UpdateRecent}
+import com.gateway.server.actors.Persistor.{UpdateCompiled, UpdateRecent}
 import com.gateway.server.exts.{ScraperStatCollection, ScraperUrl, MongoConfig}
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import java.net.URLEncoder
@@ -37,7 +37,7 @@ object ScraperRootActor {
 /**
  * Collect only home teams to await duplicate
  */
-import ScraperActor._
+import WebGetter._
 import ScraperRootActor._
 final class ScraperRootActor(implicit val bindingModule: BindingModule) extends Actor with Injectable with ActorLogging with CollectionImplicits {
 
@@ -46,8 +46,8 @@ final class ScraperRootActor(implicit val bindingModule: BindingModule) extends 
   val statTableName = inject [String] (ScraperStatCollection)
   val mongoConfig = inject [MongoConfig]
 
-  val scrapers = context.actorOf(Props.apply(new ScraperActor(self)).withRouter(SmallestMailboxRouter(5)), name = "ScraperActor")
-  val recents = context.actorOf(Props.apply(new RecentActor(self, mongoConfig, 5)).withRouter(SmallestMailboxRouter(2)), name = "RecentActor")
+  val scrapers = context.actorOf(Props.apply(new WebGetter(self)).withRouter(SmallestMailboxRouter(5)), name = "ScraperActor")
+  val recents = context.actorOf(Props.apply(new Persistor(self, mongoConfig, 5)).withRouter(SmallestMailboxRouter(2)), name = "RecentActor")
 
   var scheduledUrls = List[String]()
   var scheduledTeamNames = List[String]()
@@ -113,19 +113,23 @@ final class ScraperRootActor(implicit val bindingModule: BindingModule) extends 
     case SaveResults(scrapDt: DateTime) => {
       import scala.collection.convert.WrapAsJava._
       log.info(s"Collect result size ${teamsResults.size}")
-      //store result
-      targetCollection insert(teamsResults, WriteConcern.JOURNALED)
 
-      db getCollection(statTableName) insert(
-        BasicDBObjectBuilder.start(
-          Map("scrapDt" -> scrapDt.toDate, "affectedRecordsNum" -> teamsResults.size)).get)
+      if (teamsResults.size > 0) {
+        log.info("Save result in db")
+        //store result
+        targetCollection insert(teamsResults, WriteConcern.JOURNALED)
 
-      // recreate statistics
-      val results = db getCollection("results")
-      for ((k, v) <- standingMeasurement) {
-        db getCollection(k) drop
-        val mapReduceCommand = new MapReduceCommand(results, v, reduce, k, MapReduceCommand.OutputType.REPLACE, null)
-        results mapReduce mapReduceCommand
+        db getCollection(statTableName) insert(
+          BasicDBObjectBuilder.start(
+            Map("scrapDt" -> scrapDt.toDate, "affectedRecordsNum" -> teamsResults.size)).get)
+
+        // recreate statistics
+        val results = db getCollection("results")
+        for ((k, v) <- standingMeasurement) {
+          db getCollection(k) drop
+          val mapReduceCommand = new MapReduceCommand(results, v, reduce, k, MapReduceCommand.OutputType.REPLACE, null)
+          results mapReduce mapReduceCommand
+        }
       }
 
       mongoClient close
