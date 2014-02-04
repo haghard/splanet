@@ -33,11 +33,18 @@ object QMongo {
       .putObject("sort", new JsonObject().putNumber("_id", -1))
   }
 
-  def createUserQuery(passwordHash: String, email: String): JsonObject = {
+  def userByEmailQuery(email: String): JsonObject = {
+    new JsonObject().putString("collection", "users")
+      .putString("action", "find")
+      .putObject("matcher",
+        new JsonObject().putString("email", email))
+  }
+
+  def userQuery(passwordHash: String, email: String): JsonObject = {
     new JsonObject().putString("collection", "users")
       .putString("action", "find")
       .putObject("matcher", new JsonObject()
-      .putString("query", " email $eq \"" + email + "\"" + " password $eq \"" + passwordHash + "\""));
+      .putString("query", " email $eq \"" + email + "\"" + " password $eq \"" + passwordHash + "\""))
   }
 
   def followedTeams(ids: java.util.Iterator[Object]): JsonObject = {

@@ -7,7 +7,7 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-public class SportPlanetVerticle2 extends Verticle {
+public class SportPlanetScalaVerticle extends Verticle {
 
   private Logger logger;
 
@@ -21,10 +21,6 @@ public class SportPlanetVerticle2 extends Verticle {
     int port = container.config().getObject("network-settings").getInteger("port");
 
     deployMongoPersistor(container.config().getObject(MONGO_MODULE_NAME));
-
-    /*final RxEventBus rxEventBus = new RxEventBus(vertx.eventBus());
-    final HttpServer server = SportPlanetService.apply(vertx.createHttpServer(), rxEventBus, container.logger());
-    server.listen(port);*/
 
     final RxEventBus rxEventBus = new RxEventBus(vertx.eventBus());
     new Application(vertx.createHttpServer(), rxEventBus,

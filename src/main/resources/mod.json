@@ -1,3 +1,3 @@
 {
-  "main":"com.gateway.server.SportPlanetVerticle2"
+  "main":"com.gateway.server.SportPlanetScalaVerticle"
 }

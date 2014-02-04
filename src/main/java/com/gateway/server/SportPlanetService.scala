@@ -39,18 +39,16 @@ object SportPlanetService {
   val wins = List("homeWin", "awayWin")
   val lose = List("homeLose", "awayLose")
 
-  def hash(password: String) = {
-    Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
-  }
+  def hash(password: String) =  Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
 }
 
 import SportPlanetService._
 import com.gateway.server.exts.MongoPersistorKey
 
 class SportPlanetService(implicit val bindingModule: BindingModule) extends Injectable {
+  val logger = inject [Logger]
   val server = inject [HttpServer]
   val rxEventBus = inject [RxEventBus]
-  val logger = inject [Logger]
 
   val pModule = inject [String](MongoPersistorKey)
   val port = inject [Int](HttpServerPort)
@@ -81,7 +79,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       req bodyHandler { buffer: Buffer =>
         readBasicAuth(req) fold(
         { failure => req.response.end(new JsonObject().putString("status","error").toString) },
-        { p:(String, String) => rxEventBus.send[JsonObject, JsonObject](pModule, createUserQuery(hash(p._2), p._1))
+        { p:(String, String) => rxEventBus.send[JsonObject, JsonObject](pModule, userQuery(hash(p._2), p._1))
             .subscribe({ mes: RxMessage[JsonObject] =>
               val followedTeams = ResponseFieldParser(mes, "followedTeams")
               val ft = URLEncoder.encode(followedTeams getOrElse(
@@ -201,13 +199,39 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       }
     })
 
+    /**
+     *
+     *
+     */
     router get("/tops", { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
-        rxEventBus.send(pModule, topResults(10)).subscribe({ message: RxMessage[JsonObject] =>
-          req.response.end(message.body.toString)
-        },{
-          th: Throwable => logger.info(th.getMessage)
-        })
+        readBasicAuth(req).fold(
+          { failure => req.response.end(new JsonObject().putString("status", "auth error").toString) },
+          { creds:(String, String) =>
+            rxEventBus.send[JsonObject, JsonObject](pModule, userByEmailQuery(creds._1))
+            .flatMap({ message: RxMessage[JsonObject] =>
+              Try {
+                message.body().getArray("results").get(0).asInstanceOf[JsonObject]
+              } match {
+                case Success(js) => {
+                  if (creds._2 == js.getString("password")) { rx.Observable.from(new JsonObject().putString("status", "ok")) }
+                  else  rx.Observable.from(new JsonObject().putString("status", "auth error: Invalid password"))
+                }
+                case Failure(ex) => { rx.Observable.from(new JsonObject().putString("status", "auth error: User not exist")) }
+              }
+            }).flatMap { js: JsonObject =>
+              js.getString("status") match {
+                case "ok" => rxEventBus.send[JsonObject, JsonObject](pModule, topResults(10))
+                case other => throw new IllegalArgumentException(js.toString)
+              }
+            }.subscribe({ message: RxMessage[JsonObject] =>
+              req.response.end(message.body.toString)
+            }, {
+              th: Throwable => logger.info(th.getMessage)
+              req.response.end(th.getMessage)
+            })
+          }
+        )
       }
     })
 
@@ -279,7 +303,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
         val passwordHash = hash(req.formAttributes.get(USER_PASSWORD))
 
         import exts.{ fnToAction1 }
-        val t = rxEventBus.send[JsonObject, JsonObject](pModule, createUserQuery(passwordHash, email))
+        val t = rxEventBus.send[JsonObject, JsonObject](pModule, userQuery(passwordHash, email))
         .subscribe({ mes: RxMessage[JsonObject] =>
           val followedTeams = ResponseFieldParser(mes, "followedTeams")
           req.response.headers.add("Set-Cookie", "auth-user=" + email)

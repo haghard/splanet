@@ -68,7 +68,7 @@ dependencies {
 
   compile 'io.vertx:mod-rxjava:1.0.0-beta3-SNAPSHOT'
 
-  compile 'org.mongodb:mongo-java-driver:2.11.1'
+  compile 'org.mongodb:mongo-java-driver:2.11.4'
 
   //compile 'io.vertx:lang-scala:0.3.0'
   //compile  'io.vertx:mod-mongo-persistor:2.0.0-final'
@@ -87,7 +87,7 @@ dependencies {
   compile 'com.typesafe:config:1.0.2'
 
   compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
-
+  compile 'org.mindrot:jbcrypt:0.3m'
 }
 
 test {
