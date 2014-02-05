@@ -96,6 +96,7 @@ test {
   include 'org/foo/**'
   exclude 'org/boo/**'
   */
+  jvmArgs "-XX:MaxPermSize=512m"
 }
 
 sourceSets.main.scala.srcDir "src/main/java"
@@ -136,10 +137,6 @@ task writeNewPom {
       }
     }
   }.writeTo("pom.xml")
-}
-
-test {
-  jvmArgs "-XX:MaxPermSize=256m"
 }
 
 /*
