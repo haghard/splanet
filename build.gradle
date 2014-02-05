@@ -138,6 +138,10 @@ task writeNewPom {
   }.writeTo("pom.xml")
 }
 
+test {
+  jvmArgs "-XX:MaxPermSize=256m"
+}
+
 /*
 If you're uploading stuff to Maven, Gradle needs to generate a POM.
 Please edit the details below.
