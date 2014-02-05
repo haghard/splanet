@@ -1,6 +1,6 @@
 package com.gateway.server.actors
 
-import akka.actor.{Props, ActorLogging, Actor}
+import akka.actor.{Props, Actor}
 import akka.routing.SmallestMailboxRouter
 import java.text.MessageFormat
 import scala.collection.immutable.Map
@@ -12,6 +12,7 @@ import com.gateway.server.actors.Persistor.{UpdateCompiled, UpdateRecent}
 import com.gateway.server.exts.{ScraperStatCollection, ScraperUrl, MongoConfig}
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import java.net.URLEncoder
+import org.vertx.java.core.logging.Logger
 
 object ScraperRootActor {
 
@@ -39,15 +40,15 @@ object ScraperRootActor {
  */
 import WebGetter._
 import ScraperRootActor._
-final class ScraperRootActor(implicit val bindingModule: BindingModule) extends Actor with Injectable with ActorLogging with CollectionImplicits {
-
+final class ScraperRootActor(implicit val bindingModule: BindingModule) extends Actor with Injectable with CollectionImplicits {
+  val logger = inject [Logger]
   val teamNames = inject [List[String]]
   val url = inject [String] (ScraperUrl)
   val statTableName = inject [String] (ScraperStatCollection)
   val mongoConfig = inject [MongoConfig]
 
-  val scrapers = context.actorOf(Props.apply(new WebGetter(self)).withRouter(SmallestMailboxRouter(5)), name = "ScraperActor")
-  val recents = context.actorOf(Props.apply(new Persistor(self, mongoConfig, 5)).withRouter(SmallestMailboxRouter(2)), name = "RecentActor")
+  val scrapers = context.actorOf(Props.apply(new WebGetter(self, logger)).withRouter(SmallestMailboxRouter(5)), name = "ScraperActor")
+  val recents = context.actorOf(Props.apply(new Persistor(self, mongoConfig, 5, logger)).withRouter(SmallestMailboxRouter(2)), name = "RecentActor")
 
   var scheduledUrls = List[String]()
   var scheduledTeamNames = List[String]()
@@ -90,7 +91,7 @@ final class ScraperRootActor(implicit val bindingModule: BindingModule) extends 
           self ! PrependUrl(teamName, url0, lastScrapDt getOrElse(DateTime.now - 10.years))
         }
       } catch {
-        case ex => log.info("Mongo DB error" + ex.getMessage); self ! ScrapDone
+        case ex => logger.info("Mongo DB error" + ex.getMessage); self ! ScrapDone
       }
     }
 
@@ -112,10 +113,10 @@ final class ScraperRootActor(implicit val bindingModule: BindingModule) extends 
 
     case SaveResults(scrapDt: DateTime) => {
       import scala.collection.convert.WrapAsJava._
-      log.info(s"Collect result size ${teamsResults.size}")
+      logger.info(s"Collect result size ${teamsResults.size}")
 
       if (teamsResults.size > 0) {
-        log.info("Save result in db")
+        logger.info("Save result in db")
         //store result
         targetCollection insert(teamsResults, WriteConcern.JOURNALED)
 
@@ -138,13 +139,13 @@ final class ScraperRootActor(implicit val bindingModule: BindingModule) extends 
     }
 
     case UpdateCompiled(team, status) => {
-      log.info(s"UpdateCompiled  ${team} ${status}")
+      logger.info(s"UpdateCompiled  ${team} ${status}")
       scheduledTeamNames = scheduledTeamNames copyWithout(team)
 
       if (scheduledTeamNames.isEmpty)
         self ! ScrapDone
     }
 
-    case ScrapDone => log.info(s"ScrapDone ScraperRootActor ${scheduledTeamNames.size} ${scheduledUrls.size}")
+    case ScrapDone => logger.info(s"ScrapDone ScraperRootActor ${scheduledTeamNames.size} ${scheduledUrls.size}")
   }
 }

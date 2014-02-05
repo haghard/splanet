@@ -5,6 +5,7 @@ import com.gateway.server.actors.Persistor.{UpdateCompiled, UpdateRecent}
 import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
 import java.util
 import com.gateway.server.exts.MongoConfig
+import org.vertx.java.core.logging.Logger
 
 object Persistor {
 
@@ -14,7 +15,7 @@ object Persistor {
 
 }
 
-class Persistor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, val recentNum: Int) extends Actor with ActorLogging {
+class Persistor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, val recentNum: Int, val log: Logger) extends Actor {
 
   var mongoClient: MongoClient = _
 

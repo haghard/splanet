@@ -88,6 +88,7 @@ dependencies {
 
   compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
   compile 'org.mindrot:jbcrypt:0.3m'
+  /*compile 'apache-log4j:log4j:1.2.15'*/
 }
 
 test {
@@ -176,4 +177,5 @@ def configurePom(def pom) {
   }
 }
 
-//java -jar splanet-0.1-fat.jar -cluster -conf ../../config.json
+//gradle clean build fatJar
+//java -Dorg.vertx.logger-delegate-factory-class-name=org.vertx.java.core.logging.impl.Log4jLogDelegateFactory -jar splanet-0.1-fat.jar -cluster -conf ../../config.json

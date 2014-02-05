@@ -22,7 +22,8 @@ object WebGetter {
 
 }
 
-class WebGetter(val scraperRootActor: ActorRef) extends Actor with ActorLogging with ParserImplicits {
+import org.vertx.java.core.logging.Logger
+class WebGetter(val scraperRootActor: ActorRef, val log: Logger) extends Actor with ParserImplicits {
 
   import WebGetter._
   import scala.collection.immutable.Map
@@ -39,7 +40,7 @@ class WebGetter(val scraperRootActor: ActorRef) extends Actor with ActorLogging 
 
       future onComplete {
         case Success(resultMap) => scraperRootActor ! ProcessedResults(resultMap, scrapDt)
-        case Failure(er) => log.warning(s"Can't process pageUrl, cause: ${er.getMessage}")
+        case Failure(er) => log.error(s"Can't process pageUrl, cause: ${er.getMessage}")
       }
     }
   }
