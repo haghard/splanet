@@ -33,7 +33,7 @@ object QMongo {
       .putObject("sort", new JsonObject().putNumber("_id", -1))
   }
 
-  def userByEmailQuery(email: String): JsonObject = {
+  def userByEmail(email: String): JsonObject = {
     new JsonObject().putString("collection", "users")
       .putString("action", "find")
       .putObject("matcher",

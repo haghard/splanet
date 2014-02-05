@@ -202,6 +202,7 @@ package object exts {
   class DBAccessException(msg: String, th: Throwable) extends Exception(msg, th)
 
   case class IllegalHttpReqParams(msg: String) extends Exception(msg)
+  case class InvalidAuth(msg: String) extends Exception(msg)
 
   object DBAccessException {
     def create(msg: String) = new DBAccessException(msg, null)

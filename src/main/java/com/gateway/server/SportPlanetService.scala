@@ -79,7 +79,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       req bodyHandler { buffer: Buffer =>
         readBasicAuth(req) fold(
         { failure => req.response.end(new JsonObject().putString("status","error").toString) },
-        { p:(String, String) => rxEventBus.send[JsonObject, JsonObject](pModule, userQuery(hash(p._2), p._1))
+        { p:(String, String) => rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(p._1))
             .subscribe({ mes: RxMessage[JsonObject] =>
               val followedTeams = ResponseFieldParser(mes, "followedTeams")
               val ft = URLEncoder.encode(followedTeams getOrElse(
@@ -201,28 +201,29 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
     /**
      *
-     *
      */
     router get("/tops", { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         readBasicAuth(req).fold(
           { failure => req.response.end(new JsonObject().putString("status", "auth error").toString) },
           { creds:(String, String) =>
-            rxEventBus.send[JsonObject, JsonObject](pModule, userByEmailQuery(creds._1))
+            rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(creds._1))
             .flatMap({ message: RxMessage[JsonObject] =>
               Try {
                 message.body().getArray("results").get(0).asInstanceOf[JsonObject]
               } match {
                 case Success(js) => {
-                  if (creds._2 == js.getString("password")) { rx.Observable.from(new JsonObject().putString("status", "ok")) }
-                  else  rx.Observable.from(new JsonObject().putString("status", "auth error: Invalid password"))
+                  //ignore password for now, username its enough
+                  //if (creds._2 == js.getString("password")) {}
+                  rx.Observable.from(new JsonObject().putString("status", "ok"))
+                  //else  rx.Observable.from(new JsonObject().putString("status", "auth error: Invalid password"))
                 }
                 case Failure(ex) => { rx.Observable.from(new JsonObject().putString("status", "auth error: User not exist")) }
               }
             }).flatMap { js: JsonObject =>
               js.getString("status") match {
                 case "ok" => rxEventBus.send[JsonObject, JsonObject](pModule, topResults(10))
-                case other => throw new IllegalArgumentException(js.toString)
+                case other => throw new InvalidAuth(js.toString)
               }
             }.subscribe({ message: RxMessage[JsonObject] =>
               req.response.end(message.body.toString)
