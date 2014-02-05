@@ -18,9 +18,6 @@ public class BasicIntegrationTest extends TestVerticle
 {
 
   @Test
-  /*
-  This demonstrates using the Vert.x API from within a test.
-   */
   public void testHTTP()
   {
     // Create an HTTP server which just sends back OK response immediately
@@ -30,14 +27,14 @@ public class BasicIntegrationTest extends TestVerticle
       {
         req.response().end();
       }
-    } ).listen( 8181, new AsyncResultHandler<HttpServer>()
+    } ).listen( 8182, new AsyncResultHandler<HttpServer>()
     {
       @Override
       public void handle( AsyncResult<HttpServer> asyncResult )
       {
         assertTrue( asyncResult.succeeded() );
         // The server is listening so send an HTTP request
-        vertx.createHttpClient().setPort( 8181 ).getNow( "/", new Handler<HttpClientResponse>()
+        vertx.createHttpClient().setPort( 8182 ).getNow( "/", new Handler<HttpClientResponse>()
         {
           @Override
           public void handle( HttpClientResponse resp )
