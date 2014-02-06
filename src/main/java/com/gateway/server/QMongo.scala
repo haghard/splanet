@@ -18,6 +18,7 @@ object QMongo {
       .putString("collection", "conference")
       .putString("action", "find")
   }
+
   /**
    * homeWinMap
    * awayWinMap
@@ -28,8 +29,10 @@ object QMongo {
    * @return
    */
   def standingQuery(collectionName: String): JsonObject = {
-    new JsonObject().putString("collection", collectionName)
+    new JsonObject()
+      .putString("collection", collectionName)
       .putString("action", "find")
+      .putNumber("batch_size", 30)
       .putObject("sort", new JsonObject().putNumber("_id", -1))
   }
 

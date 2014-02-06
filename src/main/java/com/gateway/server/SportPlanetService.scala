@@ -152,9 +152,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             rxEventBus.send[JsonObject, JsonObject](pModule, standingQuery(collectionName))
           } .asJava).reduce(new JsonObject().putArray("results", new JsonArray()), reduceByMetrics)
         }
-        request(wins ::: lose).subscribe { json: JsonObject =>
-          req.response.end(json.toString)
-        }
+        request(wins ::: lose).subscribe({ json: JsonObject => req.response.end(json.toString) },
+        { th: Throwable => logger.info(th.getMessage)
+          req.response.end(new JsonObject().putString("status","error")
+            .putString("body", th.getMessage).toString)
+        })
       }
     })
 

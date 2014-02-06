@@ -3,13 +3,14 @@
 # e.g. perhaps you have your own Maven repository you want to use
 
 # Local Maven repo on filesystem
-mavenLocal:~/.m2/repository
+mavenLocal:/Volumes/Data/dev_build_tools/apache-maven-3.1.1/repository
+#~/.m2/repository
 
 # Maven central
-maven:http://repo2.maven.org/maven2
+#maven:http://repo2.maven.org/maven2
 
 # Sonatype snapshots
-maven:http://oss.sonatype.org/content/repositories/snapshots
+#maven:http://oss.sonatype.org/content/repositories/snapshots
 
 # Bintray
-bintray:http://dl.bintray.com
+#bintray:http://dl.bintray.com

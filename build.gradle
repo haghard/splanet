@@ -180,3 +180,5 @@ def configurePom(def pom) {
 
 //gradle clean build fatJar
 //java -Dorg.vertx.logger-delegate-factory-class-name=org.vertx.java.core.logging.impl.Log4jLogDelegateFactory -jar splanet-0.1-fat.jar -cluster -conf ../../config.json
+//export GRADLE_OPTS="-XX:MaxPermSize=512m"
+//-Dlog4j.configuration=log4j.xml

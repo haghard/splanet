@@ -7,6 +7,10 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
+/**
+ *
+ *
+ */
 public class SportPlanetScalaVerticle extends Verticle {
 
   private Logger logger;
