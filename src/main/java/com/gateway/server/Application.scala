@@ -31,8 +31,8 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         import module._
         import collection.JavaConversions._
         import scala.concurrent.duration._
-
         import com.escalatesoft.subcut.inject._
+
         bind [Dao] to newInstanceOf [MongoDriverDao]
         bind[List[String]].toSingle(config.getStringList("teams").toList)
         bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
