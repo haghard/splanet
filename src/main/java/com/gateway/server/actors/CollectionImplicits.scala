@@ -12,7 +12,7 @@ trait CollectionImplicits {
 
   implicit class MapExtensions[K, V](val map: Map[K, V]) {
     def updatedWith(key: K, default: V)(f: V => V) = {
-      map.updated(key, f(map.getOrElse(key, default)))
+      map updated(key, f(map.getOrElse(key, default)))
     }
   }
 }

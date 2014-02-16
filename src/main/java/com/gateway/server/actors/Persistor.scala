@@ -15,7 +15,7 @@ object Persistor {
 
 }
 
-class Persistor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, val recentNum: Int, val log: Logger) extends Actor {
+class Persistor(val mongoConfig: MongoConfig, val recentNum: Int) extends Actor with ActorLogging {
 
   var mongoClient: MongoClient = _
 
@@ -48,15 +48,14 @@ class Persistor(val scraperRootActor: ActorRef, val mongoConfig: MongoConfig, va
           BasicDBObjectBuilder start("name", teamName) get,
           BasicDBObjectBuilder.start("$set",
             BasicDBObjectBuilder start("games_id", ids) get
-          ).get
-          )
+          ).get)
 
-        log.info(s" Recent for ${teamName} was updated ")
+        log.info(s"Recent for ${teamName} was updated")
 
-        scraperRootActor ! UpdateCompiled(teamName, "success")
+        sender ! UpdateCompiled(teamName, "success")
 
       } catch {
-        case ex => scraperRootActor ! UpdateCompiled(teamName, ex.getMessage)
+        case ex => sender ! UpdateCompiled(teamName, ex.getMessage)
       } finally {
         mongoClient close
       }

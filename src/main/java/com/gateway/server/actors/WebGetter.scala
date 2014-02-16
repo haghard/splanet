@@ -22,24 +22,24 @@ object WebGetter {
 
 }
 
-import org.vertx.java.core.logging.Logger
-class WebGetter(val scraperRootActor: ActorRef, val log: Logger) extends Actor with ParserImplicits {
+class WebGetter extends Actor with ActorLogging with ParserImplicits {
 
   import WebGetter._
   import scala.collection.immutable.Map
   import com.github.nscala_time.time.Imports._
 
-  def receive = {
+  def receive: Receive = {
 
     case StartCollect(teamName, url, lastScrapDt) => {
       val scrapDt = DateTime.now
 
-      log.info(s"Collect result from ${url} between [${lastScrapDt.toDate.toString}]  [${scrapDt.toDate.toString}]")
+      log.debug(s"Collect result from ${url} between [${lastScrapDt.toDate.toString}]  [${scrapDt.toDate.toString}]")
 
-       val future: Future[Map[String, List[BasicDBObject]]] = extractResult(teamName, url)(lastScrapDt, scrapDt)
+      val future: Future[Map[String, List[BasicDBObject]]] = extractResult(teamName, url)(lastScrapDt, scrapDt)
+      val parent = sender
 
       future onComplete {
-        case Success(resultMap) => scraperRootActor ! ProcessedResults(resultMap, scrapDt)
+        case Success(resultMap) => parent ! ProcessedResults(resultMap, scrapDt)
         case Failure(er) => log.error(s"Can't process pageUrl, cause: ${er.getMessage}")
       }
     }
@@ -87,13 +87,11 @@ class WebGetter(val scraperRootActor: ActorRef, val log: Logger) extends Actor w
         }
       }
 
-      log.info(s"Game played:  ${list.flatten.size} for ${teamName} ")
+      log.debug(s"Game played:  ${list.flatten.size} for ${teamName} ")
       Map(url -> list.flatten)
 
     } catch {
-      case ex => {
-        log.info(correctUrl + ":" + ex.getMessage); Map(url -> Nil)
-      }
+      case ex =>  log.error(correctUrl + ":" + ex.getMessage); Map(url -> Nil)
     }
   }
 }

@@ -7,15 +7,14 @@ import com.escalatesoft.subcut.inject.NewBindingModule
 import NewBindingModule.newBindingModule
 import com.gateway.server.exts._
 import org.vertx.java.core.json.JsonObject
-import com.gateway.server.actors.ScraperApplication
+import com.gateway.server.actors.{MongoDriverDao, Dao, ScraperApplication}
 import com.typesafe.config.ConfigFactory
 
 class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: JsonObject, val logger: Logger, val httpPort: Int) {
 
   def start = {
 
-    val httpModule = newBindingModule {
-      module =>
+    val httpModule = newBindingModule { module =>
         import module._
         bind[HttpServer] toSingle (server)
         bind[RxEventBus] toSingle (bus)
@@ -28,12 +27,13 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
 
     val config = ConfigFactory load
 
-    val scraperModule = newBindingModule {
-      module =>
+    val scraperModule = newBindingModule { module =>
         import module._
         import collection.JavaConversions._
         import scala.concurrent.duration._
 
+        import com.escalatesoft.subcut.inject._
+        bind [Dao] to newInstanceOf [MongoDriverDao]
         bind[List[String]].toSingle(config.getStringList("teams").toList)
         bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
         bind[String].idBy(ScraperStatCollection).toSingle(config getString ("statCollection"))

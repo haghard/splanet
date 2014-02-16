@@ -88,6 +88,10 @@ dependencies {
 
   compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
   compile 'org.mindrot:jbcrypt:0.3m'
+
+  /*compile 'org.reactivemongo:reactivemongo_2.10:0.10.0'*/
+
+  compile fileTree(dir: 'libs', include: '*.jar')
   /*compile 'apache-log4j:log4j:1.2.15'*/
 }
 
@@ -119,8 +123,7 @@ uploadArchives {
 task writeNewPom {
   pom {
     project {
-
-      inceptionYear '2013'
+      inceptionYear '2014'
       licenses {
         license {
           name 'The Apache Software License, Version 2.0'
@@ -180,5 +183,6 @@ def configurePom(def pom) {
 
 //gradle clean build fatJar
 //java -Dorg.vertx.logger-delegate-factory-class-name=org.vertx.java.core.logging.impl.Log4jLogDelegateFactory -jar splanet-0.1-fat.jar -cluster -conf ../../config.json
+//java -jar splanet-0.1-fat.jar -cluster -conf ../../config.json
 //export GRADLE_OPTS="-XX:MaxPermSize=512m"
 //-Dlog4j.configuration=log4j.xml

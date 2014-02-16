@@ -1,18 +1,22 @@
 package com.gateway.server.test.unit
 
 import org.junit.{Ignore, Test}
-import com.gateway.server.actors.ScraperApplication
+import com.gateway.server.actors.{MongoDriverDao, Dao, ScraperApplication}
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.gateway.server.exts._
 import com.mongodb.{MapReduceCommand, MongoClient}
 import scala.Predef._
 import com.gateway.server.exts.MongoConfig
+import org.vertx.java.core.logging.Logger
 
 class ActorsTest {
 
   implicit val module = newBindingModule { module =>
     import module._
     import scala.concurrent.duration._
+    import com.escalatesoft.subcut.inject._
+    bind [Dao] to newInstanceOf [MongoDriverDao]
+    bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
     bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet"))
     bind[List[String]].toSingle(List("Philadelphia 76ers", "Indiana Pacers"))
@@ -29,20 +33,6 @@ class ActorsTest {
     new ScraperApplication().start
     //assert there
     Thread.sleep(60000);
-  }
-
-  //@Test
-  @Ignore
-  def testScalaFor() {
-    val f = List(1,2,3)
-    val s = List(11,12,13)
-
-    for { (f0,s0) <- f.zip(s) } yield {
-      println(f0 + " " +  s0)
-    }
-
-    val map = Map("A" -> (3,1), "B" -> (6,1))
-    val s0 = map.toSeq.sortWith { _._2._1 > _._2._1 }*/
   }
 
   //@Test
@@ -68,7 +58,7 @@ class ActorsTest {
   }
 
 
-  @Test
+  @Ignore
   def mr() {
     val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
     val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit( this.awayTeam, 1 ); }"
