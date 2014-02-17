@@ -1,6 +1,6 @@
 package com.gateway.server.actors
 
-import akka.actor.{ActorLogging, Actor, ActorRef}
+import akka.actor.{ActorLogging, Actor }
 import scala.concurrent._
 import com.mongodb.BasicDBObject
 import org.jsoup.Jsoup

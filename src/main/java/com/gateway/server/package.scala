@@ -229,5 +229,6 @@ package object exts {
   object ScraperStatCollection extends BindingId
 
   object ScraperPeriod extends BindingId
+
   object ScraperDelay extends BindingId
 }

@@ -60,8 +60,8 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      * Rest resource /recent-stat/:team
      *
      **/
-    import exts.fnToFunc1
-    router get("/recent-stat/:team", fnToHandler1 { req: HttpServerRequest =>
+    import exts.{ fnToFunc1, fnToHandler1 }
+    router get("/recent-stat/:team", { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         val teamName = URLDecoder decode(req.params.get("team"), "UTF-8")
         rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe { mes: RxMessage[JsonObject] =>
@@ -296,11 +296,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     })
 
     import exts.fnToHandler1
-    router.post("/center", fnToHandler1 { req: HttpServerRequest =>
+    router.post("/center", { req: HttpServerRequest =>
       req.response.setChunked(true)
       req.expectMultiPart(true)
       req.bodyHandler({ buffer: Buffer =>
-        if (!buffer.getString(0, buffer.length).matches("email=[\\w]+&password+=[\\w]+"))
+        if (!buffer.getString(0, buffer.length).matches("email=[\\w+@[a-zA-Z]+?\\.[a-zA-Z]{2,6}]+&password+=[\\w]+"))
           req.response.sendFile(WEBROOT + LOGIN_FAILED_PAGE)
         val email = req.formAttributes.get(USER_EMAIL)
         val passwordHash = hash(req.formAttributes.get(USER_PASSWORD))
@@ -320,8 +320,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             req.response.sendFile(WEBROOT + LOGIN_FAILED_PAGE)
         })
       })
-    }
-    )
+    })
 
     server requestHandler(router)
 
