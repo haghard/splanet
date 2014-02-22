@@ -74,7 +74,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   override def saveScrapStat(dt: Date, size: Int) = {
     db getCollection (scrapCollection) insert (
       BasicDBObjectBuilder.start(
-        Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get)
+        Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get, WriteConcern.JOURNALED)
   }
 
   override def updateStanding = {
