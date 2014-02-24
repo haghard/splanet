@@ -9,7 +9,6 @@ import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.exts.{MongoResponseArrayKey, ScraperStatCollection, MongoConfig}
 import java.util.Date
 import scala.collection.JavaConversions._
-import com.github.nscala_time.time.TypeImports.DateTime
 import com.mongodb._
 import scala.Some
 import com.github.nscala_time.time.TypeImports.DateTime

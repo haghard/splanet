@@ -1,15 +1,17 @@
 package com.gateway.server.test.unit
 
-import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
-import com.escalatesoft.subcut.inject.NewBindingModule._
-import com.gateway.server.exts._
+import java.util
 import scala.Predef._
-import com.gateway.server.exts.MongoConfig
-import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.FunSuite
 import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import com.gateway.server.exts._
+import org.scalatest.junit.JUnitRunner
+import com.gateway.server.exts.MongoConfig
+import com.mongodb.{BasicDBObject, MongoClient}
+import com.gateway.server.actors.{ MongoDriverDao, Dao}
+import com.escalatesoft.subcut.inject.NewBindingModule._
+import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
 
 @RunWith(classOf[JUnitRunner])
 class ActorsTest extends FunSuite {
@@ -31,33 +33,52 @@ class ActorsTest extends FunSuite {
   }
 
   class DaoMock(implicit val bindingModule: BindingModule) extends Injectable
+  /*
+   test("mongo agg framework") {
 
-/*
-  test("insert rec") {
-    val now = DateTime.now
-    val rec = new BasicDBObject("_id", "e743e757-d3cd-4d71-927e-8932b48fffff")
-      .append("dt", now.toDate)
-      .append("homeTeam", "TeamA")
-      .append("awayTeam", "TeamB")
-      .append("homeScore", 34)
-      .append("awayScore", 13)
-      .append("awayScore2", 11)
+     val group = new BasicDBObject("$group",
+         new BasicDBObject("_id", "$homeTeam").append(
+         "wins", new BasicDBObject("$sum",
+           new BasicDBObject("$cond",
+             util.Arrays.asList(new BasicDBObject("$gt", util.Arrays.asList("$homeScore", "$awayScore")), 1, 0 )
+         ))
+         )
+     )
 
-    val mongoClient = new MongoClient("192.168.0.143", 27017)
-    val db = mongoClient.getDB("sportPlanet")
-    val coll = db.getCollection("results")
-    Try {
-      //coll insert(rec, WriteConcern.SAFE)
-      val rec0 = coll.find(new BasicDBObject("_id", "e743e757-d3cd-4d71-927e-8932b48fffff"))
-      if (rec0.hasNext)
-        println(new DateTime(rec0.next.get("dt").asInstanceOf[Date]))
+     val mongoClient = new MongoClient("192.168.0.143", 27017)
+     val db = mongoClient.getDB("sportPlanet")
+     val coll = db.getCollection("results")
 
-      //throw new MongoException("Manually raised exception")
-    } recover {
-      case e: Throwable =>
-        println(e.getMessage)
-    }
-  }*/
+     println(s"res ${group}")
+     val out = coll aggregate(group)
+     println(out.getCommandResult.get("result"))
+   }
+
+   test("insert rec") {
+     val now = DateTime.now
+     val rec = new BasicDBObject("_id", "e743e757-d3cd-4d71-927e-8932b48fffff")
+       .append("dt", now.toDate)
+       .append("homeTeam", "TeamA")
+       .append("awayTeam", "TeamB")
+       .append("homeScore", 34)
+       .append("awayScore", 13)
+       .append("awayScore2", 11)
+
+     val mongoClient = new MongoClient("192.168.0.143", 27017)
+     val db = mongoClient.getDB("sportPlanet")
+     val coll = db.getCollection("results")
+     Try {
+       //coll insert(rec, WriteConcern.SAFE)
+       val rec0 = coll.find(new BasicDBObject("_id", "e743e757-d3cd-4d71-927e-8932b48fffff"))
+       if (rec0.hasNext)
+         println(new DateTime(rec0.next.get("dt").asInstanceOf[Date]))
+
+       //throw new MongoException("Manually raised exception")
+     } recover {
+       case e: Throwable =>
+         println(e.getMessage)
+     }
+   }*/
 
   test("dt ") {
     val lineDt = Array("2031", "11", "23T4:00:00").mkString("-")
