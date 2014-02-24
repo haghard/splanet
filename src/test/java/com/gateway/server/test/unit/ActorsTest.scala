@@ -9,6 +9,7 @@ import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.FunSuite
+import org.joda.time.DateTime
 
 @RunWith(classOf[JUnitRunner])
 class ActorsTest extends FunSuite {
@@ -58,16 +59,16 @@ class ActorsTest extends FunSuite {
     }
   }*/
 
-  /*test("dt ") {
+  test("dt ") {
     val lineDt = Array("2031", "11", "23T4:00:00").mkString("-")
     val currentDt = new DateTime(lineDt)
     println(currentDt)
-  }*/
+  }
 
-  test(" test dt ") {
+  /*test(" test dt ") {
     new ScraperApplication().start
     Thread.sleep(60000);
-  }
+  }*/
 
   /*test(" test dt ") {
     val dao = new DaoMock {
