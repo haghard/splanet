@@ -12,6 +12,7 @@ import scala.collection.JavaConversions._
 import com.github.nscala_time.time.TypeImports.DateTime
 import com.mongodb._
 import scala.Some
+import com.github.nscala_time.time.TypeImports.DateTime
 
 trait Dao extends Injectable {
 
@@ -49,6 +50,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
 
   override def lastScrapDt: Option[DateTime] = {
     import scala.collection.JavaConversions._
+    import com.github.nscala_time.time.Imports._
     val result = for {
       statCollectionName <- db getCollectionNames;
       if (statCollectionName == scrapCollection)
@@ -58,7 +60,8 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
         BasicDBObjectBuilder.start("scrapDt", -1).get)
       if (cursor.hasNext) {
         val statObject = cursor.next
-        Some(new DateTime(statObject.get("scrapDt").asInstanceOf[Date]))
+        val dt = new DateTime(statObject.get("scrapDt").asInstanceOf[Date])
+        Some(dt)
       } else {
         None
       }
@@ -68,13 +71,13 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   }
 
   override def storeResults(results: List[BasicDBObject]) = {
-    db getCollection (resultCollection) insert(results, WriteConcern.JOURNALED)
+    db getCollection (resultCollection) insert(results, WriteConcern.SAFE)
   }
 
   override def saveScrapStat(dt: Date, size: Int) = {
     db getCollection (scrapCollection) insert (
       BasicDBObjectBuilder.start(
-        Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get, WriteConcern.JOURNALED)
+        Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get, WriteConcern.SAFE)
   }
 
   override def updateStanding = {

@@ -28,6 +28,8 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
   import scala.collection.immutable.Map
   import com.github.nscala_time.time.Imports._
 
+  private val timeExp = "\\[(\\d+):(\\d+)\\]".r
+
   def receive: Receive = {
 
     case StartCollect(teamName, url, lastScrapDt) => {
@@ -67,9 +69,14 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
             throw new IllegalArgumentException("Date parsing error")
           }
 
-          val dt = parts(0)
-          val dt0 = dt split ('.')
-          val lineDt = Array("20" + dt0(2), dt0(1), dt0(0)).mkString("-")
+          val dt = parts(0) split ('.')
+          val hours = parts(1) match {
+            case timeExp(h, _) => h.toInt
+            case _ => 0
+          }
+
+          val lineDt = Array("20" + dt(2), dt(1), s"${dt(0)}T${hours}:00:00").mkString("-")
+
           val currentDt = new DateTime(lineDt)
 
           if (currentDt >= startDt && currentDt <= endDt) {

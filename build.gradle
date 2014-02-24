@@ -93,6 +93,8 @@ dependencies {
 
   compile fileTree(dir: 'libs', include: '*.jar')
   /*compile 'apache-log4j:log4j:1.2.15'*/
+
+  testCompile 'org.scalatest:scalatest_2.10:1.9.2'
 }
 
 test {

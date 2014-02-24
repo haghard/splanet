@@ -1,15 +1,17 @@
 package com.gateway.server.test.unit
 
-import org.junit.{Ignore, Test}
-import com.gateway.server.actors.{MongoDriverDao, Dao, ScraperApplication}
+import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.gateway.server.exts._
-import com.mongodb.{MapReduceCommand, MongoClient}
 import scala.Predef._
 import com.gateway.server.exts.MongoConfig
-import org.vertx.java.core.logging.Logger
+import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.FunSuite
 
-class ActorsTest {
+@RunWith(classOf[JUnitRunner])
+class ActorsTest extends FunSuite {
 
   implicit val module = newBindingModule { module =>
     import module._
@@ -19,7 +21,7 @@ class ActorsTest {
     bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
     bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet"))
-    bind[List[String]].toSingle(List("Philadelphia 76ers", "Indiana Pacers"))
+    bind[List[String]].toSingle(List("Oklahoma City Thunder"))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
     bind[String].idBy(ScraperStatCollection).toSingle("scrapStat")
 
@@ -27,16 +29,60 @@ class ActorsTest {
     bind[FiniteDuration].idBy(ScraperPeriod).toSingle(610 second)
   }
 
-  //@Test
-  @Ignore
-  def testScraper() {
+  class DaoMock(implicit val bindingModule: BindingModule) extends Injectable
+
+/*
+  test("insert rec") {
+    val now = DateTime.now
+    val rec = new BasicDBObject("_id", "e743e757-d3cd-4d71-927e-8932b48fffff")
+      .append("dt", now.toDate)
+      .append("homeTeam", "TeamA")
+      .append("awayTeam", "TeamB")
+      .append("homeScore", 34)
+      .append("awayScore", 13)
+      .append("awayScore2", 11)
+
+    val mongoClient = new MongoClient("192.168.0.143", 27017)
+    val db = mongoClient.getDB("sportPlanet")
+    val coll = db.getCollection("results")
+    Try {
+      //coll insert(rec, WriteConcern.SAFE)
+      val rec0 = coll.find(new BasicDBObject("_id", "e743e757-d3cd-4d71-927e-8932b48fffff"))
+      if (rec0.hasNext)
+        println(new DateTime(rec0.next.get("dt").asInstanceOf[Date]))
+
+      //throw new MongoException("Manually raised exception")
+    } recover {
+      case e: Throwable =>
+        println(e.getMessage)
+    }
+  }*/
+
+  /*test("dt ") {
+    val lineDt = Array("2031", "11", "23T4:00:00").mkString("-")
+    val currentDt = new DateTime(lineDt)
+    println(currentDt)
+  }*/
+
+  test(" test dt ") {
     new ScraperApplication().start
-    //assert there
     Thread.sleep(60000);
   }
 
-  //@Test
-  @Ignore
+  /*test(" test dt ") {
+    val dao = new DaoMock {
+      val dao = inject[Dao]
+      def action = { dao.open; dao.lastScrapDt }
+      def close = dao.close
+    }
+
+    //new DateTime(
+    println(dao action)
+
+    dao.close
+  }*/
+
+  /*@Test
   def testMapReduce() {
     try {
       val mongo = new MongoClient("192.168.0.143", 27017)
@@ -55,61 +101,5 @@ class ActorsTest {
     } catch {
       case ex =>
     }
-  }
-
-
-  @Ignore
-  def mr() {
-    val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
-    val awayWinMap = "function () { if (this.homeScore < this.awayScore) emit( this.awayTeam, 1 ); }"
-    val homeLoseMap = "function () { if (this.homeScore < this.awayScore) emit( this.homeTeam, 1 ); }"
-    val awayLoseMap = "function () { if (this.homeScore > this.awayScore) emit( this.awayTeam, 1 ); }"
-
-    val reduce0 = "function (key, values) { return Array.sum(values) }; "
-
-    val reduce = "function (key, values) {var dict={}; " +
-      "dict[\"Indiana Pacers\"]=\"e\";" +
-      "dict[\"Miami Heat\"]=\"e\";" +
-      "dict[\"Atlanta Hawks\"]=\"e\";" +
-      "dict[\"Toronto Raptors\"]=\"e\";" +
-      "dict[\"Chicago Bulls\"]=\"e\";" +
-      "dict[\"Washington Wizards\"]=\"e\";" +
-      "dict[\"Charlotte Bobcats\"]=\"e\";" +
-      "dict[\"Brooklyn Nets\"]=\"e\";" +
-      "dict[\"Detroit Pistons\"]=\"e\";" +
-      "dict[\"New York Knicks\"]=\"e\";" +
-      "dict[\"Cleveland Cavaliers\"]=\"e\";" +
-      "dict[\"Boston Celtics\"]=\"e\";" +
-      "dict[\"Philadelphia 76ers\"]=\"e\";" +
-      "dict[\"Orlando Magic\"]=\"e\";" +
-      "dict[\"Milwaukee Bucks\"]=\"e\";" +
-      "dict[\"Oklahoma City Thunder\"]=\"w\";" +
-      "dict[\"San Antonio Spurs\"]=\"w\";" +
-      "dict[\"Portland Trail Blazers\"]=\"w\";" +
-      "dict[\"Los Angeles Clippers\"]=\"w\";" +
-      "dict[\"Houston Rockets\"]=\"w\";" +
-      "dict[\"Golden State Warriors\"]=\"w\";" +
-      "dict[\"Dallas Mavericks\"]=\"w\";" +
-      "dict[\"Phoenix Suns\"]=\"w\";" +
-      "dict[\"Minnesota Timberwolves\"]=\"w\";" +
-      "dict[\"Denver Nuggets\"]=\"w\";" +
-      "dict[\"Memphis Grizzlies\"]=\"w\";" +
-      "dict[\"Los Angeles Lakers\"]=\"w\";" +
-      "dict[\"New Orleans Pelicans\"]=\"w\";" +
-      "dict[\"Sacramento Kings\"]=\"w\";" +
-      "dict[\"Utah Jazz\"]=\"w\";" +
-      "return { c: Array.sum(values), conf: dict[key] } ; }"
-
-    val standingMeasurement = Map("homeWin" -> homeWinMap, "homeLose" -> awayWinMap, "awayWin" -> homeLoseMap, "awayLose" -> awayLoseMap)
-
-    val mongo = new MongoClient("192.168.0.143", 27017)
-    val db = mongo.getDB("sportPlanet")
-    val results = db.getCollection("results")
-
-    for ((outCollection, mapFunction) <- standingMeasurement) {
-      val mapReduceCommand =
-        new MapReduceCommand(results, mapFunction, reduce, outCollection, MapReduceCommand.OutputType.REPLACE, null)
-      results mapReduce mapReduceCommand
-    }
-  }
+  }*/
 }
