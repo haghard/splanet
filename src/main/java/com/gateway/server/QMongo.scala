@@ -3,6 +3,21 @@ package com.gateway.server
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import scala.StringBuilder
 
+/**
+ *
+ * Standing with mongo aggregation framework
+ *
+ * home win
+ * db.results.aggregate([{ $group: { _id: "$homeTeam",  wins: { $sum: {  $cond : [ { $gt: [ "$homeScore", "$awayScore" ] }, 1, 0 ]}} } } ] )
+ * away win
+ * db.results.aggregate([{ $group: { _id: "$awayTeam",  wins: { $sum: {  $cond : [ { $gt: [ "$awayScore", "$homeScore" ] }, 1, 0 ]}} } } ] )
+ *
+ * home lose
+ * db.results.aggregate([{ $group: { _id: "$homeTeam",  wins: { $sum: {  $cond : [ { $gt: [ "$awayScore", "$homeScore" ] }, 1, 0 ]}} } } ] )
+ * away lose
+ * db.results.aggregate([{ $group: { _id: "$awayTeam",  wins: { $sum: {  $cond : [ { $gt: [ "$homeScore", "$awayScore" ] }, 1, 0 ]}} } } ] )
+ *
+ */
 object QMongo {
 
   def topResults(limit: Int) = {
