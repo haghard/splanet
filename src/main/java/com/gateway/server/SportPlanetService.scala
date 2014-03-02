@@ -96,13 +96,14 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     router get("/conference", { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         rxEventBus.send[JsonObject, JsonObject](pModule, conferenceQuery).subscribe({ mes: RxMessage[JsonObject] =>
-          for {
-           array <- Some(mes.body().getArray(MONGO_RESULT_FIELD))
-          } yield {
-            if (array.size == 2) req.response().end(array.toString)
-            else { req.response.end(new JsonObject()
-              .putString("status", "error")
-              .putString("req", array.toString).toString) }
+          Try { mes.body().getArray(MONGO_RESULT_FIELD) } match {
+            case Success(array) =>
+              if (array.size() == 2) req.response().end(array.toString)
+              else req.response.end(
+                new JsonObject().putString("status", "error").putString("message","2 conference expected").toString)
+            case Failure(ex) =>
+              req.response.end(
+                new JsonObject().putString("status", "error").putString("message", ex.getMessage).toString)
           }
         }, {
           th: Throwable => logger.info(th.getMessage)
