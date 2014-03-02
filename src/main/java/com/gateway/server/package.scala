@@ -178,7 +178,7 @@ package object exts {
     def write(line: String)
   }
 
-  case class MongoConfig(ip: String, port: Int, db: String)
+  case class MongoConfig(ip: String, port: Int, db: String, username:String, password: String)
 
   class ChunkedResponseWriter(req: HttpServerRequest, threshold: AtomicInteger,
                               currentChuckNumber: AtomicInteger = new AtomicInteger) extends ResponseWriter {

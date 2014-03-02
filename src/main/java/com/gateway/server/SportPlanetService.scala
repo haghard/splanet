@@ -102,9 +102,14 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             if (array.size == 2) req.response().end(array.toString)
             else { req.response.end(new JsonObject()
               .putString("status", "error")
-              .putString("message", "expected 2 conference")
-              .toString) }
+              .putString("req", array.toString).toString) }
           }
+        }, {
+          th: Throwable => logger.info(th.getMessage)
+            req.response.end(
+              new JsonObject().putString("status","error")
+                .putString("ex", th.getMessage)
+                .toString)
         })
       }
     })
@@ -207,7 +212,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     router get("/tops", { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         readBasicAuth(req).fold(
-          { failure => req.response.end(new JsonObject().putString("status", "auth error").toString) },
+          { failure =>  req.response.end(new JsonObject().putString("status", failure).toString) },
           { creds:(String, String) =>
             rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(creds._1))
             .flatMap({ message: RxMessage[JsonObject] =>

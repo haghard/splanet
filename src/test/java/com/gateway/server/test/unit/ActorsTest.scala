@@ -12,6 +12,7 @@ import com.mongodb.{BasicDBObject, MongoClient}
 import com.gateway.server.actors.{ MongoDriverDao, Dao}
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
+import org.junit.Test
 
 @RunWith(classOf[JUnitRunner])
 class ActorsTest extends FunSuite {
@@ -23,7 +24,7 @@ class ActorsTest extends FunSuite {
     bind [Dao] to newInstanceOf [MongoDriverDao]
     bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
-    bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet"))
+    bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet", "haghard", "suBai3sa"))
     bind[List[String]].toSingle(List("Oklahoma City Thunder"))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
     bind[String].idBy(ScraperStatCollection).toSingle("scrapStat")
@@ -104,24 +105,27 @@ class ActorsTest extends FunSuite {
     dao.close
   }*/
 
-  /*@Test
-  def testMapReduce() {
+  test("testMapReduce") {
     try {
-      val mongo = new MongoClient("192.168.0.143", 27017)
-      val db = mongo.getDB("sportPlanet")
-      val collection = db.getCollection("results")
+      val mongo = new MongoClient("troup.mongohq.com", 10067)
+      val db = mongo.getDB("sportPlanet");
 
-      val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
+      println(db.authenticate("haghard", "suBai3sa".toCharArray))
+
+      val collection = db.getCollection("results")
+      println(collection.getName)
+
+      /*val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
       val reduce = "function (key, values) { return Array.sum(values) }"
       val cmd = new MapReduceCommand(collection, homeWinMap, reduce, null, MapReduceCommand.OutputType.INLINE, null)
       val out = collection.mapReduce(cmd)
       val it = out.results.iterator
 
       while(it.hasNext)
-        println(it.next.toString)
+        println(it.next.toString)*/
 
     } catch {
-      case ex =>
+      case ex => println(ex)
     }
-  }*/
+  }
 }

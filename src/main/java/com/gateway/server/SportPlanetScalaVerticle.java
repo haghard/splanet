@@ -37,11 +37,11 @@ public class SportPlanetScalaVerticle extends Verticle {
     container.deployModule(VERTIX_MONGO_MODULE_NAME, config, 1, new AsyncResultHandler<String>() {
       @Override
       public void handle(AsyncResult<String> asyncResult) {
-      if (asyncResult.failed()) {
-        logger.info("Error: " + asyncResult.cause());
-      } else {
-        logger.info(VERTIX_MONGO_MODULE_NAME + " say " + asyncResult.result());
-      }
+        if (asyncResult.failed()) {
+          logger.info("Error: " + asyncResult.cause());
+        } else {
+          logger.info(VERTIX_MONGO_MODULE_NAME + " say " + asyncResult.result());
+        }
       }
     });
   }

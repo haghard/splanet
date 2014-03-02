@@ -90,8 +90,10 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
 
   override def close = mongoClient.close
 
-  override def open: Unit = {
+  override def open = {
     mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
     db = mongoClient getDB (mongoConfig.db)
+    if (! db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray()))
+      throw new IllegalAccessException("mongo authenticate error")
   }
 }

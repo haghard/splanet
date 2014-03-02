@@ -55,7 +55,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
         }
       } recover {
         case ex: Throwable => {
-          log.info("PrependUrl error:" + ex.getMessage);
+          log.info("Dao open error:" + ex.getMessage);
           self ! ScrapDone
         }
       }

@@ -37,7 +37,9 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         bind[List[String]].toSingle(config.getStringList("teams").toList)
         bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
         bind[String].idBy(ScraperStatCollection).toSingle(config getString ("statCollection"))
-        bind[MongoConfig].toSingle(MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name")))
+        bind[MongoConfig].toSingle(
+          MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name"),
+            persistCfg getString("username"), persistCfg getString("password")))
 
         bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") seconds)
         bind[FiniteDuration].idBy(ScraperPeriod).toSingle(config getInt ("scrapPeriodInHour") hours)

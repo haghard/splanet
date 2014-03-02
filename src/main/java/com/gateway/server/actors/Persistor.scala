@@ -28,6 +28,10 @@ class Persistor(val mongoConfig: MongoConfig, val recentNum: Int) extends Actor 
         val ids = new util.ArrayList[String](recentNum)
         mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
         val db = mongoClient getDB (mongoConfig.db)
+
+        if (!db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray))
+          throw new IllegalStateException("Update recent error. Authentication failed")
+
         val collection = db getCollection ("results")
 
         val cursor = collection.find(

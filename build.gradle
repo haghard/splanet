@@ -110,7 +110,7 @@ sourceSets.main.java.srcDirs = []
 
 repositories {
   mavenRepo(url: 'http://jcenter.bintray.com')
-  mavenCentral()
+  //mavenCentral()
   mavenLocal()
 }
 
@@ -188,3 +188,4 @@ def configurePom(def pom) {
 //java -jar splanet-0.1-fat.jar -cluster -conf ../../config.json
 //export GRADLE_OPTS="-XX:MaxPermSize=512m"
 //-Dlog4j.configuration=log4j.xml
+// mongo troup.mongohq.com:10067/sportPlanet -u haghard -p suBai3sa
