@@ -76,7 +76,6 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
           }
 
           val lineDt = Array("20" + dt(2), dt(1), s"${dt(0)}T${hours}:00:00").mkString("-")
-
           val currentDt = new DateTime(lineDt)
 
           if (currentDt >= startDt && currentDt <= endDt) {

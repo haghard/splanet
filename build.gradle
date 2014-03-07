@@ -188,4 +188,5 @@ def configurePom(def pom) {
 //java -jar splanet-0.1-fat.jar -cluster -conf ../../config.json
 //export GRADLE_OPTS="-XX:MaxPermSize=512m"
 //-Dlog4j.configuration=log4j.xml
+//java -jar splanet-0.1-fat.jar -ha -conf ../../config.json
 // mongo troup.mongohq.com:10067/sportPlanet -u haghard -p suBai3sa

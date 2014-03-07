@@ -14,9 +14,9 @@ class ScraperApplication(implicit val bindingModule: BindingModule) extends Inje
 
   def start {
     val actorSystem = ActorSystem("splanet-scraper-system")
-    val scraperActor = actorSystem actorOf(Props.apply(new Receptionist()), "Receptionist")
+    val receptionist = actorSystem actorOf(Props.apply(new Receptionist()), "Receptionist")
 
     import scala.concurrent.ExecutionContext.Implicits.global
-    actorSystem.scheduler.schedule(delay, period)(scraperActor ! StartScraper)
+    actorSystem.scheduler.schedule(delay, period)(receptionist ! StartScraper)
   }
 }

@@ -50,11 +50,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   override def lastScrapDt: Option[DateTime] = {
     import scala.collection.JavaConversions._
     import com.github.nscala_time.time.Imports._
-    val result = for {
-      statCollectionName <- db getCollectionNames;
-      if (statCollectionName == scrapCollection)
-    } yield {
-      val statColl = db getCollection statCollectionName
+      val statColl = db getCollection scrapCollection
       val cursor = statColl.find().sort(
         BasicDBObjectBuilder.start("scrapDt", -1).get)
       if (cursor.hasNext) {
@@ -64,9 +60,6 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
       } else {
         None
       }
-    }
-
-    result.flatten.lastOption
   }
 
   override def storeResults(results: List[BasicDBObject]) = {

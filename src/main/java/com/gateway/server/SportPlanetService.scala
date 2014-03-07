@@ -200,9 +200,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             } else {
               responseWriter.write(responseChunk.get)
             }
-          },
-          { th: Throwable => logger.info(th.getMessage) }
-          )
+          }, { th: Throwable =>
+            logger.info(th.getMessage)
+            req.response.end(new JsonObject().putString("status","error")
+              .putString("body", th.getMessage).toString)
+          })
         }
       }
     })
@@ -260,11 +262,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *   http://localhost:9000/recent?followed-teams=Chicago+Bulls%2CMiami+Heat
      *}
      */
-    router.get("/recent", { req: HttpServerRequest =>
+    /*router get("/recent", { req: HttpServerRequest =>
       req.response.setChunked(true)
       req.expectMultiPart(true)
       req.bodyHandler { buffer: Buffer =>
-        if(req.params.get("followed-teams") == null)
+        if(Option(req.params.get("followed-teams")).isEmpty)
           throw IllegalHttpReqParams("Request param \"followed-teams\" expected ")
 
         val teams = req.params.get("followed-teams")
@@ -288,11 +290,13 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
               responseWriter.write(responseChunk.get)
             }
           },
-          { th: Throwable => logger.info(th.getMessage) }
-          )
+          { th: Throwable => logger.info(th.getMessage)
+            req.response.end(new JsonObject().putString("status","error")
+              .putString("body", th.getMessage).toString)
+          })
         }
       }
-    })
+    })*/
 
     router.getWithRegEx(".*", { req: HttpServerRequest =>
         req.path match {

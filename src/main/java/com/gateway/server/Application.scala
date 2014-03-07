@@ -41,7 +41,7 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
           MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name"),
             persistCfg getString("username"), persistCfg getString("password")))
 
-        bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") seconds)
+        bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") minutes)
         bind[FiniteDuration].idBy(ScraperPeriod).toSingle(config getInt ("scrapPeriodInHour") hours)
     }
 
