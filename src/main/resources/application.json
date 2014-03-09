@@ -11,6 +11,7 @@
         "Los Angeles Lakers", "Sacramento Kings", "Utah Jazz"],
 
     "statCollection": "scrapStat",
+    "recentCollection": "recent",
 
     "akka" : {
       "loglevel": "DEBUG"

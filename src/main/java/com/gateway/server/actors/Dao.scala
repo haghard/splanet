@@ -11,7 +11,7 @@ import scala.Some
 import scala.collection.JavaConversions._
 import com.github.nscala_time.time.TypeImports.DateTime
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
-import com.gateway.server.exts.{MongoResponseArrayKey, ScraperStatCollection, MongoConfig}
+import com.gateway.server.exts.{RecentCollectionKey, MongoResponseArrayKey, ScraperStatCollectionKey, MongoConfig}
 
 trait Dao extends Injectable {
 
@@ -26,9 +26,11 @@ trait Dao extends Injectable {
 
   def mongoConfig = inject[MongoConfig]
 
-  def scrapCollection = inject[String](ScraperStatCollection)
+  def scrapCollection = inject[String](ScraperStatCollectionKey)
 
   def resultCollection = inject[String](MongoResponseArrayKey)
+  
+  def recentCollection = inject[String](RecentCollectionKey)
 
   def lastScrapDt: Option[DateTime]
 
@@ -97,7 +99,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    */
   override def updateRecent(teamName: String, recentNum: Int) = {
     val ids = new java.util.ArrayList[String](recentNum)
-    val recCollection = db getCollection ("recent")
+    val recCollection = db getCollection (recentCollection)
     val resCollection = db getCollection (resultCollection)
 
     val cursor = resCollection.find(

@@ -27,7 +27,7 @@ class ActorsTest extends FunSuite {
     bind[MongoConfig].toSingle(MongoConfig("troup.mongohq.com", 10067, "sportPlanet", "haghard", "suBai3sa"))
     bind[List[String]].toSingle(List("Oklahoma City Thunder"))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
-    bind[String].idBy(ScraperStatCollection).toSingle("scrapStat")
+    bind[String].idBy(ScraperStatCollectionKey).toSingle("scrapStat")
 
     bind[FiniteDuration].idBy(ScraperDelay).toSingle(0 second)
     bind[FiniteDuration].idBy(ScraperPeriod).toSingle(610 second)
