@@ -13,6 +13,11 @@ object Persistor {
 
 }
 
+/**
+ *
+ * @param recentNum
+ *
+ */
 class Persistor(val recentNum: Int)(implicit val bindingModule: BindingModule) extends Actor with ActorLogging with Injectable {
   private lazy val dao = inject[Dao]
 
