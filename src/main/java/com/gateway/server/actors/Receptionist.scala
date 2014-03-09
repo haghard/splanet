@@ -35,7 +35,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   val dao = inject[Dao]
 
   val scrapers = context.actorOf(Props.apply(new WebGetter()).withRouter(SmallestMailboxRouter(5)), name = "WebGetter")
-  val persistors = context.actorOf(Props.apply(new Persistor(mongoConfig, 5)).withRouter(SmallestMailboxRouter(2)), name = "Persistor")
+  val persistors = context.actorOf(Props.apply(new Persistor(5)).withRouter(SmallestMailboxRouter(2)), name = "Persistor")
 
   var scheduledUrls = List[String]()
   var scheduledTeamNames = List[String]()
@@ -47,11 +47,9 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case StartScraper => {
       Try {
         dao.open
-
-        teamNames foreach {
-          teamName =>
-            val url0 = MessageFormat.format(url, URLEncoder.encode(teamName, "UTF-8"))
-            self ! PrependUrl(teamName, url0, dao.lastScrapDt getOrElse (DateTime.now - 10.years))
+        teamNames foreach { teamName =>
+          self ! PrependUrl(teamName, MessageFormat.format(url, URLEncoder.encode(teamName, "UTF-8")),
+            dao.lastScrapDt getOrElse (DateTime.now - 10.years))
         }
       } recover {
         case ex: Throwable => {
@@ -111,6 +109,9 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
 
     case ScrapDone => {
       log.info(s"ScrapDone ScraperRootActor ${scheduledTeamNames.size} ${scheduledUrls.size}")
+      scheduledUrls = Nil
+      scheduledTeamNames = Nil
+      teamsResults = Nil
       context.become(idle)
     }
   }

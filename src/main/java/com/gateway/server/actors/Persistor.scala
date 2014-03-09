@@ -1,11 +1,9 @@
 package com.gateway.server.actors
 
-import akka.actor.{ActorRef, ActorLogging, Actor}
+import akka.actor.{ActorLogging, Actor}
 import com.gateway.server.actors.Persistor.{UpdateCompiled, UpdateRecent}
-import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
-import java.util
-import com.gateway.server.exts.MongoConfig
-import org.vertx.java.core.logging.Logger
+import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
+import scala.util.{Failure, Try, Success}
 
 object Persistor {
 
@@ -15,54 +13,24 @@ object Persistor {
 
 }
 
-class Persistor(val mongoConfig: MongoConfig, val recentNum: Int) extends Actor with ActorLogging {
-
-  var mongoClient: MongoClient = _
+class Persistor(val recentNum: Int)(implicit val bindingModule: BindingModule) extends Actor with ActorLogging with Injectable {
+  private lazy val dao = inject[Dao]
 
   def receive: Actor.Receive = {
-
-    case UpdateRecent(teamName) => {
-      try {
+    case UpdateRecent(teamName) =>
+      Try {
         log.info(s"Start recent for ${teamName} ")
-
-        val ids = new util.ArrayList[String](recentNum)
-        mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
-        val db = mongoClient getDB (mongoConfig.db)
-
-        if (!db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray))
-          throw new IllegalStateException("Update recent error. Authentication failed")
-
-        val collection = db getCollection ("results")
-
-        val cursor = collection.find(
-          new BasicDBObject("$or", util.Arrays.asList(
-            BasicDBObjectBuilder start("homeTeam", teamName) get,
-            BasicDBObjectBuilder start("awayTeam", teamName) get
-          )),
-          BasicDBObjectBuilder start("_id", 1) get)
-          .sort(BasicDBObjectBuilder start("dt", -1) get).limit(recentNum)
-
-        while (cursor.hasNext) {
-          ids.add(cursor.next.get("_id").asInstanceOf[String])
+        // open/close connection on every message
+        dao.open
+        dao.updateRecent(teamName, recentNum)
+      } match {
+        case Success(_) => {
+          dao.close; sender ! UpdateCompiled(teamName, "success")
         }
-
-        val recentCollection = db getCollection ("recent")
-
-        recentCollection update(
-          BasicDBObjectBuilder start("name", teamName) get,
-          BasicDBObjectBuilder.start("$set",
-            BasicDBObjectBuilder start("games_id", ids) get
-          ).get)
-
-        log.info(s"Recent for ${teamName} was updated")
-
-        sender ! UpdateCompiled(teamName, "success")
-
-      } catch {
-        case ex => sender ! UpdateCompiled(teamName, ex.getMessage)
-      } finally {
-        mongoClient close
+        case Failure(ex) => {
+          log.debug(ex.getMessage)
+          dao.close; sender ! UpdateCompiled(teamName, ex.getMessage)
+        }
       }
-    }
   }
 }

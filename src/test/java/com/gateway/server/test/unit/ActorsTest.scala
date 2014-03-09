@@ -9,7 +9,7 @@ import com.gateway.server.exts._
 import org.scalatest.junit.JUnitRunner
 import com.gateway.server.exts.MongoConfig
 import com.mongodb.{BasicDBObject, MongoClient}
-import com.gateway.server.actors.{ MongoDriverDao, Dao}
+import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
 import org.junit.Test
@@ -24,7 +24,7 @@ class ActorsTest extends FunSuite {
     bind [Dao] to newInstanceOf [MongoDriverDao]
     bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
-    bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet", "haghard", "suBai3sa"))
+    bind[MongoConfig].toSingle(MongoConfig("troup.mongohq.com", 10067, "sportPlanet", "haghard", "suBai3sa"))
     bind[List[String]].toSingle(List("Oklahoma City Thunder"))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
     bind[String].idBy(ScraperStatCollection).toSingle("scrapStat")
@@ -79,18 +79,18 @@ class ActorsTest extends FunSuite {
        case e: Throwable =>
          println(e.getMessage)
      }
-   }*/
+   }
 
-  test("dt ") {
-    val lineDt = Array("2031", "11", "23T4:00:00").mkString("-")
-    val currentDt = new DateTime(lineDt)
-    println(currentDt)
-  }
+    test("dt ") {
+      val lineDt = Array("2031", "11", "23T4:00:00").mkString("-")
+      val currentDt = new DateTime(lineDt)
+      println(currentDt)
+    }
 
-  /*test(" test dt ") {
-    new ScraperApplication().start
-    Thread.sleep(60000);
-  }*/
+    test(" test dt ") {
+      new ScraperApplication().start
+      Thread.sleep(60000);
+    }*/
 
   /*test(" test dt ") {
     val dao = new DaoMock {

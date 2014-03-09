@@ -5,13 +5,13 @@ import reactivemongo.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 */
 
-import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
-import com.gateway.server.exts.{MongoResponseArrayKey, ScraperStatCollection, MongoConfig}
 import java.util.Date
-import scala.collection.JavaConversions._
 import com.mongodb._
 import scala.Some
+import scala.collection.JavaConversions._
 import com.github.nscala_time.time.TypeImports.DateTime
+import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
+import com.gateway.server.exts.{MongoResponseArrayKey, ScraperStatCollection, MongoConfig}
 
 trait Dao extends Injectable {
 
@@ -36,6 +36,8 @@ trait Dao extends Injectable {
 
   def saveScrapStat(dt: Date, size: Int)
 
+  def updateRecent(teamName: String, recentNum: Int)
+
   def updateStanding
 
   def open
@@ -48,7 +50,6 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   var db: DB = _
 
   override def lastScrapDt: Option[DateTime] = {
-    import scala.collection.JavaConversions._
     import com.github.nscala_time.time.Imports._
       val statColl = db getCollection scrapCollection
       val cursor = statColl.find().sort(
@@ -81,12 +82,41 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
     }
   }
 
-  override def close = mongoClient.close
-
   override def open = {
     mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
     db = mongoClient getDB (mongoConfig.db)
     if (! db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray()))
       throw new IllegalAccessException("mongo authenticate error")
   }
+
+  /**
+   *
+   * @param teamName
+   * @param recentNum
+   *
+   */
+  override def updateRecent(teamName: String, recentNum: Int) = {
+    val ids = new java.util.ArrayList[String](recentNum)
+    val recCollection = db getCollection ("recent")
+    val resCollection = db getCollection (resultCollection)
+
+    val cursor = resCollection.find(
+      new BasicDBObject("$or", java.util.Arrays.asList(
+        BasicDBObjectBuilder start("homeTeam", teamName) get,
+        BasicDBObjectBuilder start("awayTeam", teamName) get
+      )),
+      BasicDBObjectBuilder start("_id", 1) get)
+      .sort(BasicDBObjectBuilder start("dt", -1) get).limit(recentNum)
+
+    while (cursor.hasNext) {
+      ids.add(cursor.next.get("_id").asInstanceOf[String])
+    }
+
+    recCollection update(
+      BasicDBObjectBuilder.start("name", teamName).get,
+      BasicDBObjectBuilder.start("$set", BasicDBObjectBuilder.start("games_id", ids).get).get
+    )
+  }
+
+  override def close = mongoClient.close
 }
