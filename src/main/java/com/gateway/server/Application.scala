@@ -33,7 +33,7 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         import scala.concurrent.duration._
         import com.escalatesoft.subcut.inject._
 
-        bind [Dao] to newInstanceOf [MongoDriverDao]
+        bind[Dao] to newInstanceOf [MongoDriverDao]
         bind[List[String]].toSingle(config.getStringList("teams").toList)
         bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
         bind[String].idBy(RecentCollectionKey).toSingle(config getString ("recentCollection"))
@@ -42,7 +42,7 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
           MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name"),
             persistCfg getString("username"), persistCfg getString("password")))
 
-        bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") minutes)
+        bind[FiniteDuration].idBy(ScraperDelay).toSingle(config getInt ("scrapPeriodInHour") minute)
         bind[FiniteDuration].idBy(ScraperPeriod).toSingle(config getInt ("scrapPeriodInHour") hours)
     }
 

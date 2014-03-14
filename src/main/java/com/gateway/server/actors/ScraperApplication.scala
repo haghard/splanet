@@ -13,7 +13,7 @@ class ScraperApplication(implicit val bindingModule: BindingModule) extends Inje
   val period = inject[FiniteDuration](ScraperPeriod)
 
   def start {
-    val actorSystem = ActorSystem("splanet-scraper-system")
+    val actorSystem = ActorSystem("splanet-system")
     val receptionist = actorSystem actorOf(Props.apply(new Receptionist()), "Receptionist")
 
     import scala.concurrent.ExecutionContext.Implicits.global

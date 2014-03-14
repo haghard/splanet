@@ -5,11 +5,11 @@ import akka.routing.SmallestMailboxRouter
 import java.text.MessageFormat
 import com.mongodb._
 import com.github.nscala_time.time.Imports._
-import com.gateway.server.actors.Persistor.{UpdateCompiled, UpdateRecent}
+import com.gateway.server.actors.BatchPersistor.{UpdateRecentBatch, UpdateCompiled}
 import com.gateway.server.exts.{ScraperUrl, MongoConfig}
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import java.net.URLEncoder
-import scala.util.Try
+import scala.util.{Success, Try}
 
 object Receptionist {
 
@@ -33,9 +33,9 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   val url = inject[String](ScraperUrl)
   val mongoConfig = inject[MongoConfig]
   val dao = inject[Dao]
+  val persistorsNumber = 2
 
-  val scrapers = context.actorOf(Props.apply(new WebGetter()).withRouter(SmallestMailboxRouter(5)), name = "WebGetter")
-  val persistors = context.actorOf(Props.apply(new Persistor(5)).withRouter(SmallestMailboxRouter(2)), name = "Persistor")
+  val getters = context.actorOf(Props.apply(new WebGetter()).withRouter(SmallestMailboxRouter(5)), name = "WebGetter")
 
   var scheduledUrls = List[String]()
   var scheduledTeamNames = List[String]()
@@ -53,7 +53,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
         }
       } recover {
         case ex: Throwable => {
-          log.info("Dao open error:" + ex.getMessage);
+          log.debug("Dao open error:" + ex.getMessage);
           self ! ScrapDone
         }
       }
@@ -62,10 +62,23 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case PrependUrl(teamName, url, lastScrapDt) => {
       scheduledUrls = url :: scheduledUrls
       scheduledTeamNames = teamName :: scheduledTeamNames
-      scrapers ! StartCollect(teamName, url, lastScrapDt)
+      getters ! StartCollect(teamName, url, lastScrapDt)
       if (scheduledTeamNames.size == teamNames.size)
         context.become(running())
     }
+  }
+
+  private def scheduleUpdateRecent(scheduledTeamName: List[String], batchSize: Int) = {
+    def loop(lists: (List[String], List[String])): Unit = lists._1 match {
+      case Nil => {}
+      case lst => {
+        val persistor = context.actorOf(Props.apply(new BatchPersistor(5)))
+        persistor ! UpdateRecentBatch(lists._1)
+        loop(lists._2.splitAt(batchSize))
+      }
+    }
+
+    loop(scheduledTeamName.splitAt(batchSize))
   }
 
   def running(): Receive = {
@@ -82,19 +95,20 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     }
 
     case SaveResults(scrapDt: DateTime) => {
-      log.info(s"Collect result size ${teamsResults.size}")
-
       if (teamsResults.size > 0) {
-        log.info("Save result in db")
-        dao.storeResults(teamsResults)
-        dao.saveScrapStat(scrapDt.toDate, teamsResults.size)
-        dao.updateStanding
-      }
+        log.info(s"Results size: ${teamsResults.size}")
+        
+        dao.persist(teamsResults, scrapDt.toDate, teamsResults.size) match {
+          case Success(r) => {
+            dao.updateStanding
+            scheduleUpdateRecent(scheduledTeamNames, scheduledTeamNames.size/persistorsNumber)
+          }
 
-      scheduledTeamNames foreach { teamName =>
-        persistors ! UpdateRecent(teamName)
+          case scala.util.Failure(ex) => { log.info(ex.getMessage); self ! ScrapDone }
+        }
+      } else {
+        self ! ScrapDone
       }
-
       dao.close
     }
 
@@ -108,11 +122,11 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     }
 
     case ScrapDone => {
-      log.info(s"ScrapDone ScraperRootActor ${scheduledTeamNames.size} ${scheduledUrls.size}")
       scheduledUrls = Nil
       scheduledTeamNames = Nil
       teamsResults = Nil
       context.become(idle)
+      log.info("Receptionist become idle")
     }
   }
 }

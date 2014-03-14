@@ -41,8 +41,12 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
       val parent = sender
 
       future onComplete {
-        case Success(resultMap) => parent ! ProcessedResults(resultMap, scrapDt)
-        case Failure(er) => log.error(s"Can't process pageUrl, cause: ${er.getMessage}")
+        case Success(resultMap) => {
+          parent ! ProcessedResults(resultMap, scrapDt)
+        }
+        case Failure(er) => {
+          log.error(s"Can't process pageUrl, cause: ${er.getMessage}")
+        }
       }
     }
   }

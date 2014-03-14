@@ -12,6 +12,7 @@ import scala.collection.JavaConversions._
 import com.github.nscala_time.time.TypeImports.DateTime
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.exts.{RecentCollectionKey, MongoResponseArrayKey, ScraperStatCollectionKey, MongoConfig}
+import scala.util.{Success, Try}
 
 trait Dao extends Injectable {
 
@@ -32,19 +33,44 @@ trait Dao extends Injectable {
   
   def recentCollection = inject[String](RecentCollectionKey)
 
-  def lastScrapDt: Option[DateTime]
-
-  def storeResults(results: List[BasicDBObject])
-
-  def saveScrapStat(dt: Date, size: Int)
-
-  def updateRecent(teamName: String, recentNum: Int)
-
-  def updateStanding
-
+  /**
+   *
+   */
   def open
 
+  /**
+   *
+   */
   def close
+
+  /**
+   *
+   * @return
+   */
+  def lastScrapDt: Option[DateTime]
+
+  /**
+   *
+   * @param results
+   * @param dt
+   * @param size
+   * @return Try[WriteResult]
+   *
+   */
+  def persist(results: List[BasicDBObject], dt: Date, size: Int): Try[WriteResult]
+
+  /**
+   *
+   * @param teamName
+   * @param recentNum
+   */
+  def updateRecent(teamName: String, recentNum: Int)
+
+  /**
+   *
+   */
+  def updateStanding
+
 }
 
 class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
@@ -65,14 +91,31 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
       }
   }
 
-  override def storeResults(results: List[BasicDBObject]) = {
-    db getCollection (resultCollection) insert(results, WriteConcern.SAFE)
-  }
-
-  override def saveScrapStat(dt: Date, size: Int) = {
-    db getCollection (scrapCollection) insert (
-      BasicDBObjectBuilder.start(
-        Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get, WriteConcern.SAFE)
+  /**
+   * This is 2 step transaction
+   * 1. Insert results
+   * 2. Update scrap stat
+   *
+   * If 1 step will fail we just return Failed
+   * If 2 step will fail we delete 1 step inserted objects
+   *
+   * @param results
+   * @param dt
+   * @param size
+   * @return Try[WriteResult]
+   *
+   */
+  override def persist(results: List[BasicDBObject], dt: Date, size: Int): Try[WriteResult] = {
+    Try { db.getCollection(resultCollection).insert(results) }
+      .flatMap({ r => Try { db.getCollection(scrapCollection).insert(
+         BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get) }.recover({
+        case th: Throwable => {
+          val coll = db.getCollection(resultCollection)
+          val cleanQuery = new BasicDBObject("_id", new BasicDBObject("$in", seqAsJavaList(results.map(_.get("_id").asInstanceOf[String]))))
+          coll.remove(cleanQuery)
+        }
+      })
+    })
   }
 
   override def updateStanding = {
@@ -87,6 +130,8 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   override def open = {
     mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
     db = mongoClient getDB (mongoConfig.db)
+    db setWriteConcern WriteConcern.ACKNOWLEDGED
+
     if (! db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray()))
       throw new IllegalAccessException("mongo authenticate error")
   }
