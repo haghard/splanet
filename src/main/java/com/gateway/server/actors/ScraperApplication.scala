@@ -5,6 +5,7 @@ import com.gateway.server.actors.Receptionist.StartScraper
 import com.gateway.server.exts._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import scala.concurrent.duration.FiniteDuration
+import com.typesafe.config.{ConfigFactory, Config}
 
 
 class ScraperApplication(implicit val bindingModule: BindingModule) extends Injectable {
@@ -12,11 +13,13 @@ class ScraperApplication(implicit val bindingModule: BindingModule) extends Inje
   val delay = inject[FiniteDuration](ScraperDelay)
   val period = inject[FiniteDuration](ScraperPeriod)
 
-  def start {
-    val actorSystem = ActorSystem("splanet-system")
-    val receptionist = actorSystem actorOf(Props.apply(new Receptionist()), "Receptionist")
+  def loadConfig: Config = ConfigFactory.load()
 
-    import scala.concurrent.ExecutionContext.Implicits.global
+  def start {
+    val actorSystem = ActorSystem("splanet-system", loadConfig.getConfig("akka"))
+    implicit val dispatcher = actorSystem.dispatchers.lookup("scraper-dispatcher")
+
+    val receptionist = actorSystem.actorOf(Props(new Receptionist), "Receptionist")
     actorSystem.scheduler.schedule(delay, period)(receptionist ! StartScraper)
   }
 }

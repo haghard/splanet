@@ -35,7 +35,7 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
     case StartCollect(teamName, url, lastScrapDt) => {
       val scrapDt = DateTime.now
 
-      log.debug(s"Collect result from ${url} between [${lastScrapDt.toDate.toString}]  [${scrapDt.toDate.toString}]")
+      log.info("Collect result from {} between {}  {}", url, lastScrapDt.toDate, scrapDt.toDate)
 
       val future: Future[Map[String, List[BasicDBObject]]] = extractResult(teamName, url)(lastScrapDt, scrapDt)
       val parent = sender
@@ -45,7 +45,7 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
           parent ! ProcessedResults(resultMap, scrapDt)
         }
         case Failure(er) => {
-          log.error(s"Can't process pageUrl, cause: ${er.getMessage}")
+          log.info(s"Can't process pageUrl, cause: {}", er.getMessage)
         }
       }
     }
@@ -97,11 +97,11 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
         }
       }
 
-      log.debug(s"Game played:  ${list.flatten.size} for ${teamName} ")
+      log.info("Game played: {} for {}", list.flatten.size, teamName)
       Map(url -> list.flatten)
 
     } catch {
-      case ex =>  log.error(correctUrl + ":" + ex.getMessage); Map(url -> Nil)
+      case ex =>  log.info(correctUrl + ":" + ex.getMessage); Map(url -> Nil)
     }
   }
 }

@@ -21,7 +21,7 @@ class BatchPersistor(val recentNum: Int)(implicit val bindingModule: BindingModu
   def receive = ({
     case UpdateRecentBatch(teams) => Try {
       dao.open
-      log.info(s" try to update recent results for: ${teams.toString}")
+      log.info("Updating recent results for: {}", teams.toString)
       teams foreach { team => dao.updateRecent(team, recentNum) }
     } match {
       case Success(_) => {
@@ -29,7 +29,7 @@ class BatchPersistor(val recentNum: Int)(implicit val bindingModule: BindingModu
         teams foreach { team => sender ! UpdateCompiled(team, "success") }
       }
       case Failure(ex) => {
-        log.debug(ex.getMessage)
+        log.info(ex.getMessage)
         dao.close
         teams foreach { team =>  sender ! UpdateCompiled(team, ex.getMessage) }
       }

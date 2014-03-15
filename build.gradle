@@ -83,7 +83,7 @@ dependencies {
   compile 'org.scala-lang:scala-compiler:2.10.3'
   compile 'org.jsoup:jsoup:1.7.2'
 
-  compile 'com.typesafe.akka:akka-actor_2.10:2.2.3'
+  compile 'com.typesafe.akka:akka-actor_2.10:2.3.0'
   compile 'com.typesafe:config:1.0.2'
 
   compile 'com.netflix.rxjava:rxjava-scala:0.16.1'

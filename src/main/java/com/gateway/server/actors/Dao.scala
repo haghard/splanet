@@ -107,15 +107,15 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    */
   override def persist(results: List[BasicDBObject], dt: Date, size: Int): Try[WriteResult] = {
     Try { db.getCollection(resultCollection).insert(results) }
-      .flatMap({ r => Try { db.getCollection(scrapCollection).insert(
-         BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get) }.recover({
+      .flatMap { r => Try { db.getCollection(scrapCollection).insert(
+         BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get) }.recover {
         case th: Throwable => {
           val coll = db.getCollection(resultCollection)
           val cleanQuery = new BasicDBObject("_id", new BasicDBObject("$in", seqAsJavaList(results.map(_.get("_id").asInstanceOf[String]))))
           coll.remove(cleanQuery)
         }
-      })
-    })
+      }
+    }
   }
 
   override def updateStanding = {
@@ -130,7 +130,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   override def open = {
     mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
     db = mongoClient getDB (mongoConfig.db)
-    db setWriteConcern WriteConcern.ACKNOWLEDGED
+    db setWriteConcern WriteConcern.JOURNALED
 
     if (! db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray()))
       throw new IllegalAccessException("mongo authenticate error")

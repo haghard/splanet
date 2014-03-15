@@ -35,7 +35,8 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   val dao = inject[Dao]
   val persistorsNumber = 2
 
-  val getters = context.actorOf(Props.apply(new WebGetter()).withRouter(SmallestMailboxRouter(5)), name = "WebGetter")
+  val getters = context.actorOf(Props(new WebGetter).withDispatcher("scraper-dispatcher"), name = "WebGetter")
+  //.withRouter(SmallestMailboxRouter(5))
 
   var scheduledUrls = List[String]()
   var scheduledTeamNames = List[String]()
@@ -53,7 +54,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
         }
       } recover {
         case ex: Throwable => {
-          log.debug("Dao open error:" + ex.getMessage);
+          log.info("Dao open error: {}", ex.getMessage);
           self ! ScrapDone
         }
       }
@@ -72,7 +73,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     def loop(lists: (List[String], List[String])): Unit = lists._1 match {
       case Nil => {}
       case lst => {
-        val persistor = context.actorOf(Props.apply(new BatchPersistor(5)))
+        val persistor = context.actorOf(Props(new BatchPersistor(5)))
         persistor ! UpdateRecentBatch(lists._1)
         loop(lists._2.splitAt(batchSize))
       }
@@ -96,7 +97,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
 
     case SaveResults(scrapDt: DateTime) => {
       if (teamsResults.size > 0) {
-        log.info(s"Results size: ${teamsResults.size}")
+        log.info("Results size: ", teamsResults.size)
         
         dao.persist(teamsResults, scrapDt.toDate, teamsResults.size) match {
           case Success(r) => {
@@ -113,7 +114,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     }
 
     case UpdateCompiled(team, status) => {
-      log.info(s"UpdateCompiled  ${team} ${status}")
+      log.info("UpdateCompiled {} {} ",team, status)
       scheduledTeamNames = scheduledTeamNames copyWithout (team)
 
       if (scheduledTeamNames.isEmpty) {
