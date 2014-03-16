@@ -50,8 +50,9 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
             dao.lastScrapDt getOrElse (DateTime.now - 10.years))
         }
       } recover {
-        case ex: Throwable => {
-          log.info("Dao open error: {}", ex.getMessage);
+        case ex: Exception => {
+          log.info("Dao open error: {}", ex.getMessage)
+          dao.close
           self ! ScrapDone
         }
       }
