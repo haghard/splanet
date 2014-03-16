@@ -24,17 +24,13 @@ class BatchPersistor(val recentNum: Int)(implicit val bindingModule: BindingModu
       log.info("Updating recent results for: {}", teams.toString)
       teams foreach { team => dao.updateRecent(team, recentNum) }
     } match {
-      case Success(_) => {
-        dao.close
-        teams foreach { team => sender ! UpdateCompiled(team, "success") }
-      }
+      case Success(_) => teams foreach { team => sender ! UpdateCompiled(team, "success") }
       case Failure(ex) => {
         log.info(ex.getMessage)
-        dao.close
         teams foreach { team =>  sender ! UpdateCompiled(team, ex.getMessage) }
       }
     }
-  }: Actor.Receive).andThen(_ => context.stop(self))
+  }: Actor.Receive).andThen(_ => { dao.close; context.stop(self) })
 
   //override def postStop() = log.info("actor {} was stopped ", self.path)
 
