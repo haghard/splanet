@@ -35,4 +35,7 @@ class BatchPersistor(val recentNum: Int)(implicit val bindingModule: BindingModu
       }
     }
   }: Actor.Receive).andThen(_ => context.stop(self))
+
+  //override def postStop() = log.info("actor {} was stopped ", self.path)
+
 }

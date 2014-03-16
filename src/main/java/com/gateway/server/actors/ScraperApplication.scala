@@ -19,7 +19,7 @@ class ScraperApplication(implicit val bindingModule: BindingModule) extends Inje
     val actorSystem = ActorSystem("splanet-system", loadConfig.getConfig("akka"))
     implicit val dispatcher = actorSystem.dispatchers.lookup("scraper-dispatcher")
 
-    val receptionist = actorSystem.actorOf(Props(new Receptionist), "Receptionist")
+    val receptionist = actorSystem.actorOf(Props(new Receptionist).withDispatcher("scraper-dispatcher"), "Receptionist")
     actorSystem.scheduler.schedule(delay, period)(receptionist ! StartScraper)
   }
 }

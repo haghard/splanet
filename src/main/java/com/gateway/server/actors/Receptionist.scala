@@ -35,9 +35,6 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   val dao = inject[Dao]
   val persistorsNumber = 2
 
-  val getters = context.actorOf(Props(new WebGetter).withDispatcher("scraper-dispatcher"), name = "WebGetter")
-  //.withRouter(SmallestMailboxRouter(5))
-
   var scheduledUrls = List[String]()
   var scheduledTeamNames = List[String]()
   var teamsResults = List[BasicDBObject]()
@@ -63,7 +60,9 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case PrependUrl(teamName, url, lastScrapDt) => {
       scheduledUrls = url :: scheduledUrls
       scheduledTeamNames = teamName :: scheduledTeamNames
-      getters ! StartCollect(teamName, url, lastScrapDt)
+      val getter = context.actorOf(Props(new WebGetter).withDispatcher("scraper-dispatcher"),
+        name = teamName.replace(" ", "%20"))
+      getter ! StartCollect(teamName, url, lastScrapDt)
       if (scheduledTeamNames.size == teamNames.size)
         context.become(running())
     }
@@ -73,7 +72,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     def loop(lists: (List[String], List[String])): Unit = lists._1 match {
       case Nil => {}
       case lst => {
-        val persistor = context.actorOf(Props(new BatchPersistor(5)))
+        val persistor = context.actorOf(Props(new BatchPersistor(5)).withDispatcher("db-dispatcher"))
         persistor ! UpdateRecentBatch(lists._1)
         loop(lists._2.splitAt(batchSize))
       }
@@ -97,7 +96,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
 
     case SaveResults(scrapDt: DateTime) => {
       if (teamsResults.size > 0) {
-        log.info("Results size: ", teamsResults.size)
+        log.info("Results size: {} ", teamsResults.size)
         
         dao.persist(teamsResults, scrapDt.toDate, teamsResults.size) match {
           case Success(r) => {
@@ -114,7 +113,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     }
 
     case UpdateCompiled(team, status) => {
-      log.info("UpdateCompiled {} {} ",team, status)
+      //log.info("UpdateCompiled {} {} ", team, status)
       scheduledTeamNames = scheduledTeamNames copyWithout (team)
 
       if (scheduledTeamNames.isEmpty) {

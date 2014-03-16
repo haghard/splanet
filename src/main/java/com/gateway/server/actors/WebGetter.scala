@@ -6,11 +6,11 @@ import com.mongodb.BasicDBObject
 import org.jsoup.Jsoup
 import java.util.UUID
 import com.github.nscala_time.time.Imports._
-import scala.util.Failure
 import scala.Some
-import scala.util.Success
 import scala.collection.immutable.Map
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.util.concurrent.Executor
+
+import akka.pattern.pipe
 
 object WebGetter {
 
@@ -23,6 +23,7 @@ object WebGetter {
 }
 
 class WebGetter extends Actor with ActorLogging with ParserImplicits {
+  implicit val executor = context.dispatcher.asInstanceOf[Executor with ExecutionContext]
 
   import WebGetter._
   import scala.collection.immutable.Map
@@ -30,28 +31,15 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
 
   private val timeExp = "\\[(\\d+):(\\d+)\\]".r
 
-  def receive: Receive = {
-
+  def receive: Receive = ({
     case StartCollect(teamName, url, lastScrapDt) => {
       val scrapDt = DateTime.now
-
       log.info("Collect result from {} between {}  {}", url, lastScrapDt.toDate, scrapDt.toDate)
-
-      val future: Future[Map[String, List[BasicDBObject]]] = extractResult(teamName, url)(lastScrapDt, scrapDt)
-      val parent = sender
-
-      future onComplete {
-        case Success(resultMap) => {
-          parent ! ProcessedResults(resultMap, scrapDt)
-        }
-        case Failure(er) => {
-          log.info(s"Can't process pageUrl, cause: {}", er.getMessage)
-        }
-      }
+      extractResult(teamName, url)(lastScrapDt, scrapDt) pipeTo sender
     }
-  }
+  }: Actor.Receive).andThen(_ => context.stop(self))
 
-  private def extractResult(teamName: String, url: String)(startDt: DateTime, endDt: DateTime): Future[Map[String, List[BasicDBObject]]] = future {
+  private def extractResult(teamName: String, url: String)(startDt: DateTime, endDt: DateTime): Future[ProcessedResults] = future {
     import scala.collection.convert.WrapAsScala._
     val correctUrl = url.replace("+", "%20")
     try {
@@ -98,10 +86,10 @@ class WebGetter extends Actor with ActorLogging with ParserImplicits {
       }
 
       log.info("Game played: {} for {}", list.flatten.size, teamName)
-      Map(url -> list.flatten)
+      ProcessedResults(Map(url -> list.flatten), endDt)
 
     } catch {
-      case ex =>  log.info(correctUrl + ":" + ex.getMessage); Map(url -> Nil)
+      case ex =>  log.info(correctUrl + ":" + ex.getMessage); ProcessedResults(Map(url -> Nil), endDt)
     }
   }
 }
