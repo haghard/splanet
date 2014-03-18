@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
 import com.github.nscala_time.time.TypeImports.DateTime
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.exts.{RecentCollectionKey, MongoResponseArrayKey, ScraperStatCollectionKey, MongoConfig}
-import scala.util.{Success, Try}
+import scala.util.Try
 
 trait Dao extends Injectable {
 
@@ -36,7 +36,7 @@ trait Dao extends Injectable {
   /**
    *
    */
-  def open
+  def open: Boolean
 
   /**
    *
@@ -127,13 +127,16 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
     }
   }
 
-  override def open = {
+  override def open: Boolean = {
     mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
     db = mongoClient getDB (mongoConfig.db)
     db setWriteConcern WriteConcern.JOURNALED
 
-    if (! db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray()))
-      throw new IllegalAccessException("mongo authenticate error")
+    if (!db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray())) {
+      throw new MongoException("mongo authenticate error")
+    }
+
+    true
   }
 
   /**

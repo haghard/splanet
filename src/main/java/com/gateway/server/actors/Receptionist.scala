@@ -1,7 +1,6 @@
 package com.gateway.server.actors
 
-import akka.actor.{ActorLogging, Props, Actor}
-import akka.routing.SmallestMailboxRouter
+import akka.actor._
 import java.text.MessageFormat
 import com.mongodb._
 import com.github.nscala_time.time.Imports._
@@ -9,13 +8,20 @@ import com.gateway.server.actors.BatchPersistor.{UpdateRecentBatch, UpdateCompil
 import com.gateway.server.exts.{ScraperUrl, MongoConfig}
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import java.net.URLEncoder
-import scala.util.{Success, Try}
+import com.gateway.server.actors.BatchPersistor.UpdateCompiled
+import com.gateway.server.exts.MongoConfig
+import com.gateway.server.actors.BatchPersistor.UpdateRecentBatch
+import scala.util.Success
+import java.util.concurrent.TimeUnit
+import scala.concurrent.Future
 
 object Receptionist {
 
-  case object StartScraper
+  case object Go
 
-  case object ScrapDone
+  case object Done
+
+  case object Connected
 
   case class SaveResults(scrapDt: DateTime)
 
@@ -23,6 +29,7 @@ object Receptionist {
 
   case class RemoveResultList(url: String)
 
+  case class TryLater(msgError: String)
 }
 
 import WebGetter._
@@ -39,31 +46,31 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   var scheduledTeamNames = List[String]()
   var teamsResults = List[BasicDBObject]()
 
-  def receive = idle()
+  import context.dispatcher
+  import scala.concurrent.duration._
+  import akka.pattern.pipe
 
-  def idle(): Receive = {
-    case StartScraper => {
-      Try {
-        dao.open
-        teamNames foreach { teamName =>
+  Future { dao.open }.map(x => Connected) pipeTo context.parent
+
+  override def receive = idle()
+
+  override def postStop() {
+    log.info(s"${self.path} was stopped")
+  }
+
+  def idle(): Receive = {    
+    case Go => {
+      teamNames foreach { teamName =>
           self ! PrependUrl(teamName, MessageFormat.format(url, URLEncoder.encode(teamName, "UTF-8")),
             dao.lastScrapDt getOrElse (DateTime.now - 10.years))
-        }
-      } recover {
-        case ex: Exception => {
-          log.info("Dao open error: {}", ex.getMessage)
-          dao.close
-          self ! ScrapDone
-        }
       }
     }
 
     case PrependUrl(teamName, url, lastScrapDt) => {
       scheduledUrls = url :: scheduledUrls
       scheduledTeamNames = teamName :: scheduledTeamNames
-      val getter = context.actorOf(Props(new WebGetter).withDispatcher("scraper-dispatcher"),
+      context.actorOf(Props(new WebGetter(teamName, url, lastScrapDt)).withDispatcher("scraper-dispatcher"),
         name = teamName.replace(" ", "%20"))
-      getter ! StartCollect(teamName, url, lastScrapDt)
       if (scheduledTeamNames.size == teamNames.size)
         context.become(running())
     }
@@ -83,6 +90,13 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   }
 
   def running(): Receive = {
+    case ComebackLater(teamName, url, lastScrapDt) => {
+      context.system.scheduler.scheduleOnce(new FiniteDuration(10, TimeUnit.SECONDS)) {
+        context.actorOf(Props(new WebGetter(teamName, url, lastScrapDt)).withDispatcher("scraper-dispatcher"),
+          name = teamName.replace(" ", "%20"))
+      }
+    }
+
     case ProcessedResults(map, scrapDt) => {
       if (map.values.head != Nil) {
         teamsResults = map.values.head ::: teamsResults
@@ -105,29 +119,27 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
             scheduleUpdateRecent(scheduledTeamNames, scheduledTeamNames.size/persistorsNumber)
           }
 
-          case scala.util.Failure(ex) => { log.info(ex.getMessage); self ! ScrapDone }
+          case scala.util.Failure(ex) => { log.info(ex.getMessage); self ! Done }
         }
       } else {
-        self ! ScrapDone
+        self ! Done
       }
-      dao.close
     }
 
     case UpdateCompiled(team, status) => {
-      //log.info("UpdateCompiled {} {} ", team, status)
       scheduledTeamNames = scheduledTeamNames copyWithout (team)
-
-      if (scheduledTeamNames.isEmpty) {
-        self ! ScrapDone
-      }
+      if (scheduledTeamNames.isEmpty) { self ! Done }
     }
 
-    case ScrapDone => {
+    case Done => {
       scheduledUrls = Nil
       scheduledTeamNames = Nil
       teamsResults = Nil
+      dao.close
+
       context.become(idle)
-      log.info("Receptionist become idle")
+      context.parent ! Done
+      context.stop(self)
     }
   }
 }

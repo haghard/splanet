@@ -1,4 +1,4 @@
 splanet
 =======
 
-Vertix+Mongo+RxJava+twitter_bootstrap
+Vertix+Mongo+RxJava+Akka Example
