@@ -23,8 +23,6 @@ object Controller {
 
 class Controller(implicit val bindingModule: BindingModule) extends Actor with ActorLogging {
   import context.dispatcher
-  import akka.pattern.ask
-  import akka.pattern.pipe
   import scala.concurrent.duration._
 
   //defense from repeated scraper run
@@ -49,7 +47,7 @@ class Controller(implicit val bindingModule: BindingModule) extends Actor with A
     case Terminated(actor) => {
       val next = backOff.waitTime
       backOff = backOff.waitTime._2
-      log.info(s"Job was delayed. Wait {} before next run", next._1)
+      log.info(s"Job was delayed. Wait ${next._1} before next run")
       busy = false
       context.system.scheduler.scheduleOnce(next._1, self, Go)
     }
@@ -57,7 +55,7 @@ class Controller(implicit val bindingModule: BindingModule) extends Actor with A
     case Done => {
       busy = false
       context.unwatch(receptionist)
-      log.info("Controller done")
+      log.info("Scrapping session done")
     }
   }
 }

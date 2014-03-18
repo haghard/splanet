@@ -1,7 +1,7 @@
 package com.gateway.server.actors
 
 import akka.actor._
-import com.gateway.server.actors.Receptionist.{Go, Done}
+import com.gateway.server.actors.Receptionist.Go
 import com.gateway.server.exts._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import scala.concurrent.duration.FiniteDuration
