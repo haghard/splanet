@@ -26,8 +26,7 @@ public class SportPlanetScalaVerticle extends Verticle {
 
     deployMongoPersistor(container.config().getObject(MONGO_MODULE_NAME));
 
-    final RxEventBus rxEventBus = new RxEventBus(vertx.eventBus());
-    new Application(vertx.createHttpServer(), rxEventBus,
+    new Application(vertx.createHttpServer(), new RxEventBus(vertx.eventBus()),
         container.config().getObject(MONGO_MODULE_NAME),
         container.logger(),
         port).start();

@@ -3,7 +3,7 @@ apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'scala'
 
-ext.scala_version = '2.10.3'
+ext.scala_version = '2.10.4'
 
 /*
 Usage:
@@ -79,11 +79,11 @@ dependencies {
 
   compile 'com.github.nscala-time:nscala-time_2.10:0.6.0'
 
-  compile 'org.scala-lang:scala-library:2.10.3'
-  compile 'org.scala-lang:scala-compiler:2.10.3'
+  compile 'org.scala-lang:scala-library:2.10.4'
+  compile 'org.scala-lang:scala-compiler:2.10.4'
   compile 'org.jsoup:jsoup:1.7.2'
 
-  compile 'com.typesafe.akka:akka-actor_2.10:2.3.0'
+  compile 'com.typesafe.akka:akka-actor_2.10:2.3.1'
   compile 'com.typesafe:config:1.0.2'
 
   compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
@@ -110,7 +110,6 @@ sourceSets.main.java.srcDirs = []
 
 repositories {
   mavenRepo(url: 'http://jcenter.bintray.com')
-  //mavenCentral()
   mavenLocal()
 }
 
@@ -190,3 +189,5 @@ def configurePom(def pom) {
 //-Dlog4j.configuration=log4j.xml
 //java -jar splanet-0.1-fat.jar -ha -conf ../../config.json
 // mongo troup.mongohq.com:10067/sportPlanet -u haghard -p suBai3sa
+
+//db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})

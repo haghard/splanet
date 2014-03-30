@@ -63,11 +63,20 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     import exts.{ fnToFunc1, fnToHandler1 }
     router get("/recent-stat/:team", { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
-        val teamName = URLDecoder decode(req.params.get("team"), "UTF-8")
-        rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe { mes: RxMessage[JsonObject] =>
-          val statistic = RecentHealthProcessor(mes, teamName)
-          if (statistic.isDefined) req.response.end(RecentHealthProcessor(mes, teamName).get.toString)
-          else req.response.end("{}")
+        Try(URLDecoder.decode(req.params.get("team"), "UTF-8")).map({ teamName =>
+          rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe({ mes: RxMessage[JsonObject] =>
+            RecentHealthProcessor(mes, teamName)
+              .fold(req.response.end(new JsonObject().putString("status", "empty").toString))({ js: JsonObject =>
+                  req.response.end(js.toString) })
+          }, { ex: Throwable =>
+            logger.error(ex.getMessage)
+            req.response.end(new JsonObject().putString("status", ex.getMessage).toString)
+          })
+        }).recover {
+          case ex: Exception => {
+            logger.error(ex.getMessage);
+            req.response.end(new JsonObject().putString("status", ex.getMessage).toString)
+          }
         }
       }
     })
@@ -96,13 +105,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     router get("/conference", { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         rxEventBus.send[JsonObject, JsonObject](pModule, conferenceQuery).subscribe({ mes: RxMessage[JsonObject] =>
-          Try { mes.body().getArray(MONGO_RESULT_FIELD) } match {
-            case Success(array) =>
-              if (array.size() == 2) req.response().end(array.toString)
+          Try(mes.body().getArray(MONGO_RESULT_FIELD)) match {
+            case Success(array) => if (array.size() == 2) req.response().end(array.toString)
               else req.response.end(
                 new JsonObject().putString("status", "error").putString("message","2 conference expected").toString)
-            case Failure(ex) =>
-              req.response.end(
+            case Failure(ex) => req.response.end(
                 new JsonObject().putString("status", "error").putString("message", ex.getMessage).toString)
           }
         }, {

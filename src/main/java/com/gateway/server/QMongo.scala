@@ -20,19 +20,17 @@ import scala.StringBuilder
  */
 object QMongo {
 
-  def topResults(limit: Int) = {
-    new JsonObject()
-      .putString("collection", "results")
-      .putString("action", "find")
-      .putObject("sort", new JsonObject().putNumber("dt", -1))
-      .putNumber("limit", limit)
-  }
+  def topResults(limit: Int) = new JsonObject()
+    .putString("collection", "results")
+    .putString("action", "find")
+    .putObject("sort", new JsonObject().putNumber("dt", -1))
+    .putNumber("limit", limit)
 
-  def conferenceQuery = {
-    new JsonObject()
-      .putString("collection", "conference")
-      .putString("action", "find")
-  }
+
+  def conferenceQuery = new JsonObject()
+    .putString("collection", "conference")
+    .putString("action", "find")
+
 
   /**
    * homeWinMap
@@ -43,29 +41,26 @@ object QMongo {
    * @param collectionName
    * @return
    */
-  def standingQuery(collectionName: String): JsonObject = {
-    new JsonObject()
-      .putString("collection", collectionName)
-      .putString("action", "find")
-      .putNumber("batch_size", 30)
-      .putObject("sort", new JsonObject().putNumber("_id", -1))
-  }
+  def standingQuery(collectionName: String) = new JsonObject()
+    .putString("collection", collectionName)
+    .putString("action", "find")
+    .putNumber("batch_size", 30)
+    .putObject("sort", new JsonObject().putNumber("_id", -1))
 
-  def userByEmail(email: String): JsonObject = {
-    new JsonObject().putString("collection", "users")
-      .putString("action", "find")
-      .putObject("matcher",
-        new JsonObject().putString("email", email))
-  }
+  def userByEmail(email: String) = new JsonObject()
+    .putString("collection", "users")
+    .putString("action", "find")
+    .putObject("matcher",
+      new JsonObject().putString("email", email))
 
-  def userQuery(passwordHash: String, email: String): JsonObject = {
-    new JsonObject().putString("collection", "users")
-      .putString("action", "find")
-      .putObject("matcher", new JsonObject()
-      .putString("query", " email $eq \"" + email + "\"" + " password $eq \"" + passwordHash + "\""))
-  }
 
-  def followedTeams(ids: java.util.Iterator[Object]): JsonObject = {
+  def userQuery(passwordHash: String, email: String) = new JsonObject()
+    .putString("collection", "users")
+    .putString("action", "find")
+    .putObject("matcher", new JsonObject()
+    .putString("query", " email $eq \"" + email + "\"" + " password $eq \"" + passwordHash + "\""))
+
+  /*def followedTeams(ids: java.util.Iterator[Object]): JsonObject = {
     import scala.collection.JavaConversions.asScalaIterator
     val scalaIds: Iterator[Object] = ids
 
@@ -86,24 +81,25 @@ object QMongo {
       .putObject("matcher", new JsonObject()
       .putString("query", " _id $in { " + resultsLine.toString() + " }"))
   }
+  */
 
-  def recentStat(teamName: String, limit: Int): JsonObject = {
-    new JsonObject().putString("collection", "results")
-      .putString("action", "find")
-      .putObject("sort", new JsonObject().putNumber("dt", -1))
-      .putNumber("limit", limit)
-      .putObject("matcher", new JsonObject()
-        .putString("query", " $or : [ { homeTeam $eq \"" + teamName + "\"" + " }, { awayTeam $eq \"" + teamName + "\"" + " } ]" ))
-  }
+  //db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})
+  def recentStat(teamName: String, limit: Int) = new JsonObject()
+    .putString("collection", "results")
+    .putString("action", "find")
+    .putObject("sort", new JsonObject().putNumber("dt", -1))
+    .putNumber("limit", limit)
+    .putNumber("batch_size", limit)
+    .putObject("matcher", new JsonObject()
+    .putString("query", " $or : [ { homeTeam $eq \"" + teamName + "\"" + " }, { awayTeam $eq \"" + teamName + "\"" + " } ]" ))
 
-  def recentResultByTeam(teamName: String): JsonObject = {
-    new JsonObject().putString("collection", "recent")
-      .putString("action", "find")
-      .putObject("matcher",
-        new JsonObject().putString("name", teamName));
-  }
+  def recentResultByTeam(teamName: String) = new JsonObject()
+    .putString("collection", "recent")
+    .putString("action", "find")
+    .putObject("matcher",
+      new JsonObject().putString("name", teamName))
 
-  def recentResultsById(recentIds: JsonArray): JsonObject = {
+  def recentResultsById(recentIds: JsonArray) = {
     val resultLine = new scala.StringBuilder()
     val cleanLine = recentIds.toString.replaceAll("\\[\"|\\\"]", "")
     resultLine.append("\"").append(cleanLine).append("\"")

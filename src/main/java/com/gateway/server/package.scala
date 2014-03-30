@@ -149,19 +149,18 @@ package object exts {
         val recentResults: Iterator[AnyRef] = v.iterator
 
         val stats = HashMultiset.create[String]()
-        recentResults foreach {
-          result =>
-            val r = result.asInstanceOf[JsonObject]
-            if (r.getNumber("homeScore").intValue() > r.getNumber("awayScore").intValue()) {
-              stats.add(r.getString("homeTeam"))
-            } else {
-              stats.add(r.getString("awayTeam"))
-            }
+        recentResults foreach { result =>
+          val r = result.asInstanceOf[JsonObject]
+          if (r.getNumber("homeScore").intValue() > r.getNumber("awayScore").intValue()) {
+            stats.add(r.getString("homeTeam"))
+          } else {
+            stats.add(r.getString("awayTeam"))
+          }
         }
         val win = stats.count(teamName)
         val lose = stats.size - win
-        new JsonObject()
-          .putString("team", teamName).putString("results", Array(win, lose).mkString("-"))
+        new JsonObject().putString("team", teamName)
+          .putString("results", Array(win, lose).mkString("-"))
       }
     }
   }
@@ -181,7 +180,7 @@ package object exts {
   case class MongoConfig(ip: String, port: Int, db: String, username:String, password: String)
 
   class ChunkedResponseWriter(req: HttpServerRequest, threshold: AtomicInteger,
-                              currentChuckNumber: AtomicInteger = new AtomicInteger) extends ResponseWriter {
+                              val currentChuckNumber: AtomicInteger = new AtomicInteger) extends ResponseWriter {
 
     def write(line: String): Unit = currentChuckNumber.incrementAndGet() match {
       case n => {

@@ -1,18 +1,15 @@
 package com.gateway.server.test.unit
 
-import java.util
 import scala.Predef._
 import org.scalatest.FunSuite
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import com.gateway.server.exts._
 import org.scalatest.junit.JUnitRunner
 import com.gateway.server.exts.MongoConfig
-import com.mongodb.{BasicDBObject, MongoClient}
-import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
+import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
+import com.gateway.server.actors.{MongoDriverDao, Dao}
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
-import org.junit.Test
 
 @RunWith(classOf[JUnitRunner])
 class ActorsTest extends FunSuite {
@@ -106,6 +103,8 @@ class ActorsTest extends FunSuite {
   }*/
 
   test("testMapReduce") {
+    import scala.collection.JavaConversions._
+
     try {
       val mongo = new MongoClient("troup.mongohq.com", 10067)
       val db = mongo.getDB("sportPlanet");
@@ -114,6 +113,23 @@ class ActorsTest extends FunSuite {
 
       val collection = db.getCollection("results")
       println(collection.getName)
+
+      val q = BasicDBObjectBuilder.start("_id", "f78608b9-b9d8-450f-9d7a-76c3df6ad9d2").get
+
+      println(q)
+      val res = collection.find(q)
+
+      while (res.hasNext) {
+        val map = res.next.toMap
+
+        val it = map.keySet.iterator
+        while(it.hasNext)
+          println(it.next.getClass)
+
+        println(map.values.map({ x => x.getClass }))
+
+      }
+
 
       /*val homeWinMap = "function () { if (this.homeScore > this.awayScore) emit( this.homeTeam, 1 ); }"
       val reduce = "function (key, values) { return Array.sum(values) }"
