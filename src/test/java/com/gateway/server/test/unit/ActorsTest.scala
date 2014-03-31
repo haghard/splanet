@@ -6,8 +6,8 @@ import org.junit.runner.RunWith
 import com.gateway.server.exts._
 import org.scalatest.junit.JUnitRunner
 import com.gateway.server.exts.MongoConfig
-import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
-import com.gateway.server.actors.{MongoDriverDao, Dao}
+//import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
+import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
 
@@ -21,13 +21,15 @@ class ActorsTest extends FunSuite {
     bind [Dao] to newInstanceOf [MongoDriverDao]
     bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
-    bind[MongoConfig].toSingle(MongoConfig("troup.mongohq.com", 10067, "sportPlanet", "haghard", "suBai3sa"))
-    bind[List[String]].toSingle(List("Oklahoma City Thunder"))
+    bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet", "", ""))
+    bind[List[String]].toSingle(List("Oklahoma City Thunder", "Miami Heat", "Chicago Bulls"))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
     bind[String].idBy(ScraperStatCollectionKey).toSingle("scrapStat")
+    bind[String].idBy(RecentCollectionKey).toSingle("recent")
 
     bind[FiniteDuration].idBy(ScraperDelay).toSingle(0 second)
-    bind[FiniteDuration].idBy(ScraperPeriod).toSingle(610 second)
+    bind[FiniteDuration].idBy(ScraperPeriod).toSingle(20 second)
+
   }
 
   class DaoMock(implicit val bindingModule: BindingModule) extends Injectable
@@ -83,11 +85,12 @@ class ActorsTest extends FunSuite {
       val currentDt = new DateTime(lineDt)
       println(currentDt)
     }
+   */
 
     test(" test dt ") {
       new ScraperApplication().start
-      Thread.sleep(60000);
-    }*/
+      Thread.sleep(120000);
+    }
 
   /*test(" test dt ") {
     val dao = new DaoMock {
@@ -102,7 +105,7 @@ class ActorsTest extends FunSuite {
     dao.close
   }*/
 
-  test("testMapReduce") {
+  /*test("testMapReduce") {
     import scala.collection.JavaConversions._
 
     try {
@@ -143,5 +146,5 @@ class ActorsTest extends FunSuite {
     } catch {
       case ex => println(ex)
     }
-  }
+  }*/
 }

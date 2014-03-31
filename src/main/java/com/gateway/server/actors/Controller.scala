@@ -3,11 +3,19 @@ package com.gateway.server.actors
 import akka.actor._
 import scala.concurrent.duration.FiniteDuration
 import java.util.concurrent.{ThreadLocalRandom, TimeUnit}
-import com.gateway.server.actors.Receptionist.{Connected, TryLater, Done, Go}
-import com.escalatesoft.subcut.inject.BindingModule
+import com.gateway.server.actors.Receptionist._
+import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.actors.Controller.BackOff
 import akka.util.Timeout
 import akka.actor.Status.Failure
+import java.text.MessageFormat
+import java.net.URLEncoder
+import com.gateway.server.actors.Receptionist.Go
+import com.gateway.server.actors.Receptionist.Connected
+import com.gateway.server.actors.Controller.BackOff
+import akka.actor.Terminated
+import akka.actor.Status.Failure
+import com.gateway.server.exts.ScraperUrl
 
 object Controller {
 
@@ -21,13 +29,15 @@ object Controller {
   }
 }
 
-class Controller(implicit val bindingModule: BindingModule) extends Actor with ActorLogging {
+class Controller(implicit val bindingModule: BindingModule) extends Actor with Injectable with ActorLogging {
   import context.dispatcher
   import scala.concurrent.duration._
 
+  val teamNames = inject[List[String]]
+  val url = inject[String](ScraperUrl)
+
   //defense from repeated scraper run
   private var busy = false
-  implicit val timeout: Timeout = 5 seconds
   var backOff = BackOff(10, 20)
   var receptionist: ActorRef = _
 
@@ -40,7 +50,11 @@ class Controller(implicit val bindingModule: BindingModule) extends Actor with A
       log.info("Ignore scheduling task while current in progress")
     }
 
-    case Connected => receptionist ! Go
+    case Connected(dt) => {
+      teamNames foreach { x =>
+        receptionist ! Go(TargetUrl(x, MessageFormat.format(url, URLEncoder.encode(x, "UTF-8")), dt))
+      }
+    }
 
     case Failure(ex) => receptionist ! Kill
 

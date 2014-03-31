@@ -188,6 +188,8 @@ def configurePom(def pom) {
 //export GRADLE_OPTS="-XX:MaxPermSize=512m"
 //-Dlog4j.configuration=log4j.xml
 //java -jar splanet-0.1-fat.jar -ha -conf ../../config.json
+
 // mongo troup.mongohq.com:10067/sportPlanet -u haghard -p suBai3sa
+//mongo 192.168.0.143:27017/sportPlanet
 
 //db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})

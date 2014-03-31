@@ -13,6 +13,7 @@ import com.github.nscala_time.time.TypeImports.DateTime
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.exts.{RecentCollectionKey, MongoResponseArrayKey, ScraperStatCollectionKey, MongoConfig}
 import scala.util.Try
+import com.google.common.base.Strings
 
 trait Dao extends Injectable {
 
@@ -51,31 +52,43 @@ trait Dao extends Injectable {
 
   /**
    *
+   * @param teamNames
    * @param results
    * @param dt
-   * @param size
-   * @return Try[WriteResult]
-   *
+   * @return
    */
-  def persist(results: List[BasicDBObject], dt: Date, size: Int): Try[WriteResult]
+  def persist(teamNames: List[String], results: List[BasicDBObject], dt: Date): Try[Unit]
 
   /**
    *
    * @param teamName
    * @param recentNum
    */
-  def updateRecent(teamName: String, recentNum: Int)
-
-  /**
-   *
-   */
-  def updateStanding
-
+  def updateRecent(teamName: String, recentNum: Int): WriteResult
 }
 
 class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   var mongoClient: MongoClient = _
   var db: DB = _
+
+  override def open: Boolean = {
+    val builder = new MongoClientOptions.Builder();
+    builder.connectionsPerHost(5);
+    builder.socketTimeout(10);
+    val address = new ServerAddress(mongoConfig.ip, mongoConfig.port);
+
+    mongoClient = new MongoClient(address, builder.build())
+    db = mongoClient.getDB(mongoConfig.db)
+    db.setWriteConcern(WriteConcern.SAFE)
+
+    if (!Strings.isNullOrEmpty(mongoConfig.username) && !Strings.isNullOrEmpty(mongoConfig.password)) {
+      if (!db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray())) {
+        throw new MongoException("mongo authentication error")
+      }
+    }
+
+    true
+  }
 
   override def lastScrapDt: Option[DateTime] = {
     import com.github.nscala_time.time.Imports._
@@ -95,48 +108,41 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    * This is 2 step transaction
    * 1. Insert results
    * 2. Update scrap stat
+   * 3. Update statistics if first two was ok
    *
    * If 1 step will fail we just return Failed
    * If 2 step will fail we delete 1 step inserted objects
    *
    * @param results
    * @param dt
-   * @param size
-   * @return Try[WriteResult]
+   * @return Try[Unit]
    *
    */
-  override def persist(results: List[BasicDBObject], dt: Date, size: Int): Try[WriteResult] = {
-    Try { db.getCollection(resultCollection).insert(results) }
-      .flatMap { r => Try { db.getCollection(scrapCollection).insert(
-         BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> size)).get) }.recover {
-        case th: Throwable => {
-          val coll = db.getCollection(resultCollection)
-          val cleanQuery = new BasicDBObject("_id", new BasicDBObject("$in", seqAsJavaList(results.map(_.get("_id").asInstanceOf[String]))))
-          coll.remove(cleanQuery)
-        }
+  override def persist(teamNames: List[String], results: List[BasicDBObject], dt: Date): Try[Unit] = {
+    Try({
+      db.getCollection(resultCollection).insert(results)
+      db.getCollection(scrapCollection).insert(
+        BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> results.size)).get)
+    }).recoverWith({
+      case th: Exception => {
+        val coll = db.getCollection(resultCollection)
+        val cleanQuery = new BasicDBObject("_id", new BasicDBObject("$in", seqAsJavaList(results.map(_.get("_id").asInstanceOf[String]))))
+        coll.remove(cleanQuery)
+        scala.util.Failure(new Exception("Persist error. Transaction was rollback"))
       }
-    }
+    }).map({ r => Try {
+      updateStanding
+      teamNames foreach { team => updateRecent(team, 5) }
+    }})
   }
 
-  override def updateStanding = {
+  private def updateStanding = {
     val results = db getCollection (resultCollection)
     for ((k, v) <- standingMeasurement) {
       db getCollection (k) drop
       val mapReduceCommand = new MapReduceCommand(results, v, reduce, k, MapReduceCommand.OutputType.REPLACE, null)
-      results mapReduce mapReduceCommand
+      results.mapReduce(mapReduceCommand)
     }
-  }
-
-  override def open: Boolean = {
-    mongoClient = new MongoClient(mongoConfig.ip, mongoConfig.port)
-    db = mongoClient getDB (mongoConfig.db)
-    db setWriteConcern WriteConcern.JOURNALED
-
-    if (!db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray())) {
-      throw new MongoException("mongo authenticate error")
-    }
-
-    true
   }
 
   /**
@@ -145,7 +151,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    * @param recentNum
    *
    */
-  override def updateRecent(teamName: String, recentNum: Int) = {
+  override def updateRecent(teamName: String, recentNum: Int): WriteResult = {
     val ids = new java.util.ArrayList[String](recentNum)
     val recCollection = db getCollection (recentCollection)
     val resCollection = db getCollection (resultCollection)
@@ -162,7 +168,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
       ids.add(cursor.next.get("_id").asInstanceOf[String])
     }
 
-    recCollection update(
+    recCollection.update(
       BasicDBObjectBuilder.start("name", teamName).get,
       BasicDBObjectBuilder.start("$set", BasicDBObjectBuilder.start("games_id", ids).get).get
     )
