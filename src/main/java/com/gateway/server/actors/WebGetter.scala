@@ -24,9 +24,10 @@ object WebGetter {
 
   case class Result(dt: String, homeTeam: String, awayTeam: String, homeScore: Int, awayScore: Int)
 
+  def apply(task: TargetUrl): Props = Props(new WebGetter(task))
+
 }
 
-//teamName: String, url: String, lastScrapDt: DateTime
 class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImplicits {
   import WebGetter._
   import scala.collection.immutable.Map
@@ -50,8 +51,6 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
   }: Actor.Receive).andThen(_ => context.stop(self))
 
   private def extractResult(task: TargetUrl)(endDt: DateTime): Future[ProcessedResults] = future {
-    //teamName: String, url: String
-    //startDt: DateTime,
     import scala.collection.convert.WrapAsScala._
     val correctUrl = task.url.replace("+", "%20")
     log.info("Collect result from {} between {}  {}", task.url, task.lastScrapDt.toDate, endDt.toDate)

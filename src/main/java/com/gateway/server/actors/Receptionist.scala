@@ -9,8 +9,6 @@ import com.gateway.server.exts.MongoConfig
 import com.github.nscala_time.time.Imports._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import scala.collection.immutable.Map
-import akka.actor.Status.Failure
-import akka.actor.SupervisorStrategy.Restart
 
 object Receptionist {
 
@@ -38,6 +36,7 @@ import akka.pattern.pipe
 
 class Receptionist(implicit val bindingModule: BindingModule) extends Actor with ActorLogging with
                                                               Injectable with CollectionImplicits {
+  val teamNames = inject[List[String]]
   val url = inject[String](ScraperUrl)
   val mongoConfig = inject[MongoConfig]
   val dao = inject[Dao]
@@ -48,11 +47,6 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
 
   //
   Future(dao.open) map { x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) } pipeTo context.parent
-
-  override def postStop() = {
-    dao.close
-    log.info(s"${self.path} was stopped")
-  }
 
   override def receive = waiting()
 
@@ -65,7 +59,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     val copy = q.copyWithout(map.keys.head)
     if (copy.isEmpty) {
       if (!updateBatch.isEmpty) {
-        context.actorOf(Props(new BatchPersistor(dao, recentWindow, updateBatch, scrapDt))
+        context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)
           .withDispatcher("db-dispatcher")) ! SaveResults
       } else {
         self ! UpdateCompiled
@@ -94,7 +88,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case ComebackLater(task) => {
       log.info("lets try scrap later for {}", task.teamName)
       context.system.scheduler.scheduleOnce(new FiniteDuration(10, TimeUnit.SECONDS)) {
-        context.actorOf(Props(new WebGetter(task)).withDispatcher("scraper-dispatcher"),
+        context.actorOf(WebGetter(task).withDispatcher("scraper-dispatcher"),
           name = task.teamName.replace(" ", "%20"))
       }
     }
@@ -104,11 +98,12 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case PersistLater(updateBatch, scrapDt) => {
       log.info("lets try persist later")
       context.system.scheduler.scheduleOnce(new FiniteDuration(30, TimeUnit.SECONDS),
-        context.actorOf(Props(new BatchPersistor(dao, recentWindow, updateBatch, scrapDt))
+        context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)
           .withDispatcher("db-dispatcher")), SaveResults)
     }
 
     case UpdateCompiled => {
+      dao.close
       updateBatch = Nil
       context.become(waiting)
       context.parent ! Done
@@ -116,11 +111,16 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     }
   }
 
+  /**
+   * Create new WebGetter
+   * @param q
+   * @return
+   */
   def runNext(q: List[TargetUrl]): Receive = {
     if(q.isEmpty) waiting()
     else {
       val task = q.head
-      context.actorOf(Props(new WebGetter(task))
+      context.actorOf(WebGetter(task)
         .withDispatcher("scraper-dispatcher"), name = task.teamName.replace(" ", "%20"))
       running(q)
     }

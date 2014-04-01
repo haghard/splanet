@@ -72,10 +72,10 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   var db: DB = _
 
   override def open: Boolean = {
-    val builder = new MongoClientOptions.Builder();
-    builder.connectionsPerHost(5);
-    builder.socketTimeout(10);
-    val address = new ServerAddress(mongoConfig.ip, mongoConfig.port);
+    val address = new ServerAddress(mongoConfig.ip, mongoConfig.port)
+    val builder = new MongoClientOptions.Builder()
+    builder.connectionsPerHost(10)
+    builder.socketTimeout(10000)
 
     mongoClient = new MongoClient(address, builder.build())
     db = mongoClient.getDB(mongoConfig.db)
