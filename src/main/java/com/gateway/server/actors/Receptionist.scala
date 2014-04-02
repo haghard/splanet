@@ -39,10 +39,8 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   private val recentWindow = 5
   private var updateBatch = List[BasicDBObject]()
 
-  import context.dispatcher
-
-  Future(dao.open)(context.system.dispatchers.lookup("db-dispatcher"))
-    .map({ x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) }) pipeTo context.parent
+  implicit val exc = context.system.dispatchers.lookup("db-dispatcher")
+  Future(dao.open).map({ x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) }) pipeTo context.parent
 
   override def receive = waiting()
 
@@ -55,8 +53,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     val copy = q.copyWithout(map.keys.head)
     if (copy.isEmpty) {
       if (!updateBatch.isEmpty) {
-        context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)
-          .withDispatcher("db-dispatcher")) ! SaveResults
+        context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)) ! SaveResults
       } else {
         self ! UpdateCompiled
       }
@@ -84,18 +81,17 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case ProcessedResults(map, scrapDt) => context.become(dequeueJob(q, map, scrapDt))
 
     case ScrapLater(task) => {
-      implicit val disp = context.system.dispatchers.lookup("scraper-dispatcher")
-      context.system.scheduler.scheduleOnce(new FiniteDuration(10, TimeUnit.SECONDS)) {
-        context.actorOf(WebGetter(task).withDispatcher("scraper-dispatcher"),
-          name = task.teamName.replace(" ", "%20"))
-      }
+      context.system.scheduler.scheduleOnce(
+        new FiniteDuration(30, TimeUnit.SECONDS))({
+        context.actorOf(WebGetter(task), name = task.teamName.replace(" ", "%20"))
+      })(context.system.dispatchers.lookup("scraper-dispatcher"))
     }
 
     case PersistLater(updateBatch, scrapDt) => {
-      implicit val disp = context.system.dispatchers.lookup("scraper-dispatcher")
-      context.system.scheduler.scheduleOnce(new FiniteDuration(30, TimeUnit.SECONDS),
-        context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)
-          .withDispatcher("db-dispatcher")), SaveResults)
+      context.system.scheduler.scheduleOnce(
+        new FiniteDuration(30, TimeUnit.SECONDS),
+        context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)),
+        SaveResults)(context.system.dispatchers.lookup("db-dispatcher"))
     }
 
     case UpdateCompiled => {
@@ -116,8 +112,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     if(q.isEmpty) waiting()
     else {
       val task = q.head
-      context.actorOf(WebGetter(task)
-        .withDispatcher("scraper-dispatcher"), name = task.teamName.replace(" ", "%20"))
+      context.actorOf(WebGetter(task), name = task.teamName.replace(" ", "%20"))
       running(q)
     }
   }

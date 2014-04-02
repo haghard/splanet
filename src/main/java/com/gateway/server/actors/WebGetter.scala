@@ -7,7 +7,6 @@ import org.jsoup.Jsoup
 import java.util.UUID
 import com.github.nscala_time.time.Imports._
 import scala.collection.immutable.Map
-import java.util.concurrent.Executor
 
 import akka.pattern.pipe
 import akka.actor.Status.Failure
@@ -25,7 +24,7 @@ object WebGetter {
   case class Result(dt: String, homeTeam: String, awayTeam: String, homeScore: Int, awayScore: Int)
 
   def apply(task: TargetUrl): Props = Props(new WebGetter(task))
-
+    .withDispatcher("scraper-dispatcher")
 }
 
 class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImplicits {

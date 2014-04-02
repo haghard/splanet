@@ -11,6 +11,7 @@ object BatchPersistor {
   def apply(dao: Dao, recentWindow: Int, updateBatch: List[BasicDBObject], scrapDt: DateTime,
             teamNames: List[String]): Props =
      Props(new BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames))
+       .withDispatcher("db-dispatcher")
 }
 
 /**
