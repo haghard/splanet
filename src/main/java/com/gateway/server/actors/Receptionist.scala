@@ -16,17 +16,17 @@ object Receptionist {
 
   case object SaveResults
 
+  case object UpdateCompiled
+
   case class Go(url: TargetUrl)
 
   case class Connected(dt: DateTime)
-
-  case class TargetUrl(teamName: String, url: String, lastScrapDt: DateTime)
 
   case class RemoveResultList(url: String)
 
   case class TryLater(msgError: String)
 
-  case object UpdateCompiled
+  case class TargetUrl(teamName: String, url: String, lastScrapDt: DateTime)
 }
 
 import WebGetter._
@@ -45,7 +45,6 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
 
   import context.dispatcher
 
-  //
   Future(dao.open) map { x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) } pipeTo context.parent
 
   override def receive = waiting()
@@ -85,18 +84,18 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   def running(q: List[TargetUrl]): Receive = {
     case Go(targetUrl) => context.become(enqueueJob(q, targetUrl))
 
-    case ComebackLater(task) => {
-      log.info("lets try scrap later for {}", task.teamName)
+    case ProcessedResults(map, scrapDt) => context.become(dequeueJob(q, map, scrapDt))
+
+    case ScrapLater(task) => {
+      implicit val disp = context.system.dispatchers.lookup("scraper-dispatcher")
       context.system.scheduler.scheduleOnce(new FiniteDuration(10, TimeUnit.SECONDS)) {
         context.actorOf(WebGetter(task).withDispatcher("scraper-dispatcher"),
           name = task.teamName.replace(" ", "%20"))
       }
     }
 
-    case ProcessedResults(map, scrapDt) => context.become(dequeueJob(q, map, scrapDt))
-
     case PersistLater(updateBatch, scrapDt) => {
-      log.info("lets try persist later")
+      implicit val disp = context.system.dispatchers.lookup("scraper-dispatcher")
       context.system.scheduler.scheduleOnce(new FiniteDuration(30, TimeUnit.SECONDS),
         context.actorOf(BatchPersistor(dao, recentWindow, updateBatch, scrapDt, teamNames)
           .withDispatcher("db-dispatcher")), SaveResults)

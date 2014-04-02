@@ -2,7 +2,6 @@ package com.gateway.server.actors
 
 import akka.actor.{Props, ActorLogging, Actor}
 import com.github.nscala_time.time.Imports._
-import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.actors.Receptionist.{UpdateCompiled, SaveResults}
 import com.mongodb.BasicDBObject
 import scala.util.{Failure, Success}
@@ -23,18 +22,16 @@ object BatchPersistor {
 class BatchPersistor(dao: Dao, recentNum: Int, updateBatch: List[BasicDBObject], scrapDt: DateTime,
                      teamNames: List[String]) extends Actor with ActorLogging {
 
-  override def postRestart(reason: Throwable): Unit = {
-    log.info(s" BatchPersistor was restarted ${reason.getMessage}")
-  }
-
   def receive = ({
     case SaveResults => {
       if (updateBatch.size > 0) {
-        log.info("Results size: {} ", updateBatch.size)
         dao.persist(teamNames, updateBatch, scrapDt.toDate) match {
-          case Success(_) => sender ! UpdateCompiled
+          case Success(_) => {
+            log.info("Result with size:{} was saved", updateBatch.size)
+            sender ! UpdateCompiled
+          }
           case Failure(ex) => {
-            log.info(ex.getMessage);
+            log.info("Try persist later:", ex.getMessage)
             sender ! PersistLater(updateBatch, scrapDt)
           }
         }

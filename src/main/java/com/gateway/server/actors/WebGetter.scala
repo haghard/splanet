@@ -4,7 +4,7 @@ import akka.actor._
 import scala.concurrent._
 import com.mongodb.BasicDBObject
 import org.jsoup.Jsoup
-import java.util.{Date, UUID}
+import java.util.UUID
 import com.github.nscala_time.time.Imports._
 import scala.collection.immutable.Map
 import java.util.concurrent.Executor
@@ -16,7 +16,7 @@ import com.gateway.server.actors.Receptionist.TargetUrl
 
 object WebGetter {
 
-  case class ComebackLater(task: TargetUrl)
+  case class ScrapLater(task: TargetUrl)
 
   case class PersistLater(updateBatch: List[BasicDBObject], scrapDt: DateTime)
 
@@ -35,18 +35,13 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
   private val timeExp = "\\[(\\d+):(\\d+)\\]".r
   private implicit val executor = context.dispatcher.asInstanceOf[Executor with ExecutionContext]
 
-  override def postRestart(reason: Throwable) {
-    super.postRestart(reason)
-    log.info(s"${self.path} restarted because of ${reason.getMessage}")
-  }
-
   extractResult(task) (DateTime.now) pipeTo self
 
   def receive: Receive = ({
     case result: ProcessedResults => context.parent ! result
     case Failure(ex) => {
-      log.info(s"Try later for ${task.teamName}")
-      context.parent ! ComebackLater(task)
+      log.info("Try scrap later for {}", task.teamName)
+      context.parent ! ScrapLater(task)
     }
   }: Actor.Receive).andThen(_ => context.stop(self))
 

@@ -1,15 +1,12 @@
 package com.gateway.server.actors
 
 import akka.actor._
+import java.net.URLEncoder
+import java.text.MessageFormat
 import scala.concurrent.duration.FiniteDuration
 import java.util.concurrent.{ThreadLocalRandom, TimeUnit}
 import com.gateway.server.actors.Receptionist._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
-import com.gateway.server.actors.Controller.BackOff
-import akka.util.Timeout
-import akka.actor.Status.Failure
-import java.text.MessageFormat
-import java.net.URLEncoder
 import com.gateway.server.actors.Receptionist.Go
 import com.gateway.server.actors.Receptionist.Connected
 import com.gateway.server.actors.Controller.BackOff
@@ -31,45 +28,50 @@ object Controller {
 
 class Controller(implicit val bindingModule: BindingModule) extends Actor with Injectable with ActorLogging {
   import context.dispatcher
-  import scala.concurrent.duration._
 
-  val teamNames = inject[List[String]]
-  val url = inject[String](ScraperUrl)
-
-  //defense from repeated scraper run
-  private var busy = false
   var backOff = BackOff(10, 20)
-  var receptionist: ActorRef = _
+  var receptionist: Option[ActorRef] = None
 
-  override def receive: Actor.Receive = {
-    case Go => if (!busy) {
-      busy = true
-      receptionist = context.actorOf(Props(new Receptionist).withDispatcher("scraper-dispatcher"), "Receptionist")
-      context.watch(receptionist)
-    } else {
-      log.info("Ignore scheduling task while current in progress")
-    }
+  override def receive = idle()
+
+  def idle(): Receive = {
+    case Go => context.become(switch())
+  }
+
+  def switch(): Receive = {
+    receptionist = Some(context.actorOf(Props(new Receptionist).withDispatcher("scraper-dispatcher"), "Receptionist"))
+    context.watch(receptionist.get)
+    active()
+  }
+
+  def active(): Receive = {
+    case Go => log.info("Ignore scheduling since we are active now")
 
     case Connected(dt) => {
+      val teamNames = inject[List[String]]
+      val url = inject[String](ScraperUrl)
       teamNames foreach { x =>
-        receptionist ! Go(TargetUrl(x, MessageFormat.format(url, URLEncoder.encode(x, "UTF-8")), dt))
+        receptionist.get ! Go(TargetUrl(x, MessageFormat.format(url, URLEncoder.encode(x, "UTF-8")), dt))
       }
     }
 
-    case Failure(ex) => receptionist ! Kill
+    case Failure(ex) => {
+      receptionist.get ! Kill
+      receptionist = None
+    }
 
     case Terminated(actor) => {
       val next = backOff.waitTime
       backOff = backOff.waitTime._2
       log.info(s"Job was delayed. Wait ${next._1} before next run")
-      busy = false
       context.system.scheduler.scheduleOnce(next._1, self, Go)
+      context.become(idle())
     }
 
     case Done => {
-      busy = false
-      context.unwatch(receptionist)
-      log.info("Scrapping session done")
+      context.unwatch(receptionist.get)
+      log.info("Scraping done")
+      context.become(idle())
     }
   }
 }
