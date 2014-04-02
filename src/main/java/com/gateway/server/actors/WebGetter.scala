@@ -33,7 +33,7 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
   import scala.collection.immutable.Map
 
   private val timeExp = "\\[(\\d+):(\\d+)\\]".r
-  private implicit val executor = context.dispatcher.asInstanceOf[Executor with ExecutionContext]
+  private implicit val executor = context.system.dispatchers.lookup("scraper-dispatcher")
 
   extractResult(task) (DateTime.now) pipeTo self
 
