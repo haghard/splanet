@@ -4,8 +4,6 @@ import akka.actor._
 import com.mongodb._
 import scala.concurrent.Future
 import java.util.concurrent.TimeUnit
-import com.gateway.server.exts.ScraperUrl
-import com.gateway.server.exts.MongoConfig
 import com.github.nscala_time.time.Imports._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import scala.collection.immutable.Map
@@ -36,16 +34,15 @@ import akka.pattern.pipe
 
 class Receptionist(implicit val bindingModule: BindingModule) extends Actor with ActorLogging with
                                                               Injectable with CollectionImplicits {
-  val teamNames = inject[List[String]]
-  val url = inject[String](ScraperUrl)
-  val mongoConfig = inject[MongoConfig]
-  val dao = inject[Dao]
-  val recentWindow = 5
-  var updateBatch = List[BasicDBObject]()
+  private val teamNames = inject[List[String]]
+  private val dao = inject[Dao]
+  private val recentWindow = 5
+  private var updateBatch = List[BasicDBObject]()
 
   import context.dispatcher
 
-  Future(dao.open) map { x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) } pipeTo context.parent
+  Future(dao.open)(context.system.dispatchers.lookup("db-dispatcher"))
+    .map({ x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) }) pipeTo context.parent
 
   override def receive = waiting()
 
