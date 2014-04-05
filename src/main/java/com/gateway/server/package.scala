@@ -159,8 +159,8 @@ package object exts {
         }
         val win = stats.count(teamName)
         val lose = stats.size - win
-        new JsonObject().putString("team", teamName)
-          .putString("results", Array(win, lose).mkString("-"))
+        new JsonObject().putObject("results", new JsonObject().putString("team", teamName)
+          .putString("results", Array(win, lose).mkString("-")))
       }
     }
   }

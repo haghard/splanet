@@ -68,7 +68,7 @@ dependencies {
 
   compile 'io.vertx:mod-rxjava:1.0.0-beta3-SNAPSHOT'
 
-  compile 'org.mongodb:mongo-java-driver:2.11.4'
+  compile 'org.mongodb:mongo-java-driver:2.12.0'
 
   //compile 'io.vertx:lang-scala:0.3.0'
   //compile  'io.vertx:mod-mongo-persistor:2.0.0-final'
@@ -189,7 +189,7 @@ def configurePom(def pom) {
 //-Dlog4j.configuration=log4j.xml
 //java -jar splanet-0.1-fat.jar -ha -conf ../../config.json
 
-// mongo troup.mongohq.com:10067/sportPlanet -u haghard -p suBai3sa
+//mongo troup.mongohq.com:10067/sportPlanet -u haghard -p suBai3sa
 //mongo 192.168.0.143:27017/sportPlanet
 
 //db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})

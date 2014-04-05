@@ -18,9 +18,8 @@ import org.vertx.java.core.http.{HttpServerRequest, RouteMatcher, HttpServer}
 import com.google.common.io.BaseEncoding
 import scala.Predef._
 import scala.util.Failure
-import scala.Some
 import scala.util.Success
-import com.gateway.server.exts.IllegalHttpReqParams
+import org.joda.time.DateTime
 
 object SportPlanetService {
 
@@ -38,6 +37,20 @@ object SportPlanetService {
 
   val wins = List("homeWin", "awayWin")
   val lose = List("homeLose", "awayLose")
+
+  //api access errors
+  val error0 = "Bad credential in request"
+  val error1 = "Unauthorized access"
+
+
+  val RECENT_STAT_API = "/recent-stat/:team"
+  val CONF_API = "/conference"
+  val STANDING_API = "/standing/:flag"
+
+  val STANDING2_API = "/standing2"
+
+  val RECENT_TEAM_API = "/recent/:followedTeam"
+  val RESULT_API = "/results/:day"
 
   def hash(password: String) =  Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
 }
@@ -61,7 +74,9 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *
      **/
     import exts.{ fnToFunc1, fnToHandler1 }
-    router get("/recent-stat/:team", { req: HttpServerRequest =>
+    router get(RECENT_STAT_API, { req: HttpServerRequest =>
+
+
       req bodyHandler { buffer: Buffer =>
         Try(URLDecoder.decode(req.params.get("team"), "UTF-8")).map({ teamName =>
           rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe({ mes: RxMessage[JsonObject] =>
@@ -102,7 +117,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
         })
     }})
 
-    router get("/conference", { req: HttpServerRequest =>
+    router get(CONF_API, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         rxEventBus.send[JsonObject, JsonObject](pModule, conferenceQuery).subscribe({ mes: RxMessage[JsonObject] =>
           Try(mes.body().getArray(MONGO_RESULT_FIELD)) match {
@@ -126,7 +141,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *  http://192.168.0.143:9000/standing/wins
      *  http://192.168.0.143:9000/standing/lose
      **/
-    router get("/standing/:flag", { req: HttpServerRequest =>
+    router get(STANDING_API, { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         val flag = req.params.get("flag")
 
@@ -158,7 +173,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     /**
      *
      */
-    router get("/standing2", { req: HttpServerRequest =>
+    router get(STANDING2_API, { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         def request(col: List[String]): rx.Observable[JsonObject] = {
           rx.Observable.merge(col.map { collectionName =>
@@ -184,7 +199,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *   }).promise();
      *   return Rx.Observable.fromPromise(promise);
      */
-    router.get("/recent/:followedTeam", { req: HttpServerRequest =>
+    router.get(RECENT_TEAM_API, { req: HttpServerRequest =>
       req.response.setChunked(true)
       req.expectMultiPart(true)
       req.bodyHandler { buffer: Buffer =>
@@ -218,40 +233,45 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
     /**
      *
+     * @param r
+     * @param finder
+     * @return
      */
-    router get("/tops", { req: HttpServerRequest =>
+    def access(r: HttpServerRequest, finder:(String => rx.Observable[JsonObject])): rx.Observable[JsonObject] = {
+      readBasicAuth(r).fold({ failure => rx.Observable.from(new JsonObject().putString("status", error0)) },
+      { credential:(String, String) =>  rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1))
+        .flatMap({ message: RxMessage[JsonObject] => Try(message.body().getArray("results"))
+          .map({ arr => logger.info(s"${arr.get(0).asInstanceOf[JsonObject].getString("email")} access to /results/:day")
+            rx.Observable.from(r.params.get("day"))
+          }).getOrElse { logger.info(s"anon access to /results/:day"); rx.Observable.from("unknown") }
+        }).flatMap(finder)
+      })
+    }
+
+    /**
+     *
+     */
+    router get(RESULT_API, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
-        readBasicAuth(req).fold(
-          { failure =>  req.response.end(new JsonObject().putString("status", failure).toString) },
-          { creds:(String, String) =>
-            rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(creds._1))
-            .flatMap({ message: RxMessage[JsonObject] =>
-              Try {
-                message.body().getArray("results").get(0).asInstanceOf[JsonObject]
-              } match {
-                case Success(js) => {
-                  //ignore password for now, username its enough
-                  //if (creds._2 == js.getString("password")) {}
-                  rx.Observable.from(new JsonObject().putString("status", "ok"))
-                  //else  rx.Observable.from(new JsonObject().putString("status", "auth error: Invalid password"))
-                }
-                case Failure(ex) => { rx.Observable.from(new JsonObject().putString("status", "auth error: User not exist")) }
-              }
-            }).flatMap { js: JsonObject =>
-              js.getString("status") match {
-                case "ok" => rxEventBus.send[JsonObject, JsonObject](pModule, topResults(10))
-                case other => throw new InvalidAuth(js.toString)
-              }
-            }.subscribe({ message: RxMessage[JsonObject] =>
-              req.response.end(message.body.toString)
-            }, {
-              th: Throwable => logger.info(th.getMessage)
-              req.response.end(th.getMessage)
-            })
+
+        val resultPageFinder: (String) => rx.Observable[JsonObject] = { day =>
+          day match {
+            case "unknown" => rx.Observable.from(new JsonObject().putString("status", error1))
+            case date => {
+              val dt = QMongo.dateFormatter.parse(day)
+              rxEventBus.send[JsonObject, JsonObject](pModule,
+                periodResult(new DateTime(dt).minusDays(1).toDate, dt))
+                .map { message: RxMessage[JsonObject] => message.body }
+            }
           }
+        }
+
+        access(req, resultPageFinder).subscribe(
+          { message: JsonObject => req.response.end(message.toString) },
+          { th: Throwable => logger.info(th.getMessage); req.response.end(th.getMessage) }
         )
-      }
-    })
+
+      }})
 
     /**
      *  Return recent games by many teams
@@ -340,6 +360,8 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     })
 
     server requestHandler(router)
+
+    logger.info("Http server started")
 
     server listen(port)
   }

@@ -14,6 +14,7 @@ import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import com.gateway.server.exts.{RecentCollectionKey, MongoResponseArrayKey, ScraperStatCollectionKey, MongoConfig}
 import scala.util.Try
 import com.google.common.base.Strings
+import java.util
 
 trait Dao extends Injectable {
 
@@ -72,20 +73,27 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
   var db: DB = _
 
   override def open: Boolean = {
-    val address = new ServerAddress(mongoConfig.ip, mongoConfig.port)
     val builder = new MongoClientOptions.Builder()
     builder.connectionsPerHost(10)
     builder.socketTimeout(10000)
 
-    mongoClient = new MongoClient(address, builder.build())
+    if (Strings.isNullOrEmpty(mongoConfig.username) || Strings.isNullOrEmpty(mongoConfig.password)) {
+      mongoClient = new MongoClient(
+        util.Arrays.asList(new ServerAddress(mongoConfig.ip, mongoConfig.port)),
+        builder.build())
+    } else {
+      mongoClient = new MongoClient(
+        util.Arrays.asList(new ServerAddress(mongoConfig.ip, mongoConfig.port)),
+        util.Arrays.asList(MongoCredential.createMongoCRCredential(
+          mongoConfig.username, mongoConfig.db, mongoConfig.password.toCharArray)),
+
+        builder.build()
+      )
+    }
+
     db = mongoClient.getDB(mongoConfig.db)
     db.setWriteConcern(WriteConcern.SAFE)
 
-    if (!Strings.isNullOrEmpty(mongoConfig.username) && !Strings.isNullOrEmpty(mongoConfig.password)) {
-      if (!db.authenticate(mongoConfig.username, mongoConfig.password.toCharArray())) {
-        throw new MongoException("mongo authentication error")
-      }
-    }
 
     true
   }

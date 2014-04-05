@@ -1,7 +1,8 @@
 package com.gateway.server
 
 import org.vertx.java.core.json.{JsonArray, JsonObject}
-import scala.StringBuilder
+import java.util.Date
+import java.text.SimpleDateFormat
 
 /**
  *
@@ -19,6 +20,16 @@ import scala.StringBuilder
  *
  */
 object QMongo {
+
+  val dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+
+  def format(dt: Date) = dateFormatter.format(dt)
+
+  def periodResult(startDt: Date, endDt: Date) = new JsonObject()
+    .putString("collection", "results")
+    .putString("action", "find")
+    .putObject("matcher", new JsonObject().putString("query",
+      " $and: [ { dt $gt \"ISODate=" + format(startDt) + "\" }, { dt $lt \"ISODate=" + format(endDt) + "\"} ] "))
 
   def topResults(limit: Int) = new JsonObject()
     .putString("collection", "results")

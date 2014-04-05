@@ -6,6 +6,13 @@ import org.junit.runner.RunWith
 import com.gateway.server.exts._
 import org.scalatest.junit.JUnitRunner
 import com.gateway.server.exts.MongoConfig
+import com.mongodb._
+import java.util
+import java.util.Date
+import org.joda.time.DateTime
+import com.gateway.server.exts.MongoConfig
+import java.text.SimpleDateFormat
+
 //import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
 import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
 import com.escalatesoft.subcut.inject.NewBindingModule._
@@ -86,11 +93,11 @@ class ActorsTest extends FunSuite {
       println(currentDt)
     }
    */
-
-    test(" test dt ") {
+  /*
+      test(" test dt ") {
       new ScraperApplication().start
       Thread.sleep(120000);
-    }
+    }*/
 
   /*test(" test dt ") {
     val dao = new DaoMock {
@@ -105,19 +112,30 @@ class ActorsTest extends FunSuite {
     dao.close
   }*/
 
-  /*test("testMapReduce") {
+  test("testMapReduce") {
     import scala.collection.JavaConversions._
-
+    //import com.github.nscala_time.time.Imports._
     try {
-      val mongo = new MongoClient("troup.mongohq.com", 10067)
+
+      val mongo = new MongoClient(
+        util.Arrays.asList(new ServerAddress("troup.mongohq.com", 10067)),
+        util.Arrays.asList(MongoCredential.createMongoCRCredential("haghard", "sportPlanet", "suBai3sa".toCharArray))
+      )
+
+      //val creds = MongoCredential.createPlainCredential("haghard", "sportPlanet", "suBai3sa".toCharArray)
       val db = mongo.getDB("sportPlanet");
 
-      println(db.authenticate("haghard", "suBai3sa".toCharArray))
+      //println(db.authenticate("haghard", "suBai3sa".toCharArray))
 
       val collection = db.getCollection("results")
       println(collection.getName)
 
-      val q = BasicDBObjectBuilder.start("_id", "f78608b9-b9d8-450f-9d7a-76c3df6ad9d2").get
+      val t = DateTime.now.minusDays(1)
+
+      val dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+      println(dateParser.format(t.toDate))
+
+      val q = new BasicDBObject("dt", new BasicDBObject("$gt", t.toDate))
 
       println(q)
       val res = collection.find(q)
@@ -146,5 +164,5 @@ class ActorsTest extends FunSuite {
     } catch {
       case ex => println(ex)
     }
-  }*/
+  }
 }
