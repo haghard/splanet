@@ -233,23 +233,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
     /**
      *
-     * @param r
-     * @param finder
-     * @return
-     */
-    def access(r: HttpServerRequest, finder:(String => rx.Observable[JsonObject])): rx.Observable[JsonObject] = {
-      readBasicAuth(r).fold({ failure => rx.Observable.from(new JsonObject().putString("status", error0)) },
-      { credential:(String, String) =>  rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1))
-        .flatMap({ message: RxMessage[JsonObject] => Try(message.body().getArray("results"))
-          .map({ arr => logger.info(s"${arr.get(0).asInstanceOf[JsonObject].getString("email")} access to /results/:day")
-            rx.Observable.from(r.params.get("day"))
-          }).getOrElse { logger.info(s"anon access to /results/:day"); rx.Observable.from("unknown") }
-        }).flatMap(finder)
-      })
-    }
-
-    /**
-     *
      */
     router get(RESULT_API, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
@@ -260,7 +243,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
             case date => {
               val dt = QMongo.dateFormatter.parse(day)
               rxEventBus.send[JsonObject, JsonObject](pModule,
-                periodResult(new DateTime(dt).minusDays(1).toDate, dt))
+                pagedResult(new DateTime(dt).minusDays(1).toDate, dt))
                 .map { message: RxMessage[JsonObject] => message.body }
             }
           }
@@ -366,6 +349,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     server listen(port)
   }
 
+  /**
+   *
+   * @param req
+   * @return
+   */
   def readBasicAuth(req: HttpServerRequest): Either[String, (String, String)] = {
     val BasicHeader = "Basic (.*)".r
     Option(req.headers.get("Authorization")).map { v => v match {
@@ -383,4 +371,22 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
         }
     } getOrElse(Left("Auth type absent in header"))
   }
+
+  /**
+   *
+   * @param r
+   * @param finder
+   * @return
+   */
+  def access(r: HttpServerRequest, finder:(String => rx.Observable[JsonObject])): rx.Observable[JsonObject] = {
+    readBasicAuth(r).fold({ failure => rx.Observable.from(new JsonObject().putString("status", error0)) },
+    { credential:(String, String) =>  rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1))
+      .flatMap({ message: RxMessage[JsonObject] => Try(message.body().getArray("results"))
+      .map({ arr => logger.info(s"${arr.get(0).asInstanceOf[JsonObject].getString("email")} access to /results/:day")
+      rx.Observable.from(r.params.get("day"))
+    }).getOrElse { logger.info(s"anon access to /results/:day"); rx.Observable.from("unknown") }
+    }).flatMap(finder)
+    })
+  }
+
 }

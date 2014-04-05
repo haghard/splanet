@@ -25,7 +25,7 @@ object QMongo {
 
   def format(dt: Date) = dateFormatter.format(dt)
 
-  def periodResult(startDt: Date, endDt: Date) = new JsonObject()
+  def pagedResult(startDt: Date, endDt: Date) = new JsonObject()
     .putString("collection", "results")
     .putString("action", "find")
     .putObject("matcher", new JsonObject().putString("query",
