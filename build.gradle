@@ -87,6 +87,9 @@ dependencies {
   compile 'com.typesafe:config:1.0.2'
 
   compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
+
+  //compile 'com.netflix.rxjava:rxjava-scala:0.17.0'
+
   compile 'org.mindrot:jbcrypt:0.3m'
 
   /*compile 'org.reactivemongo:reactivemongo_2.10:0.10.0'*/

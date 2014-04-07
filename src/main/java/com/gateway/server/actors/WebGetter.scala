@@ -76,7 +76,7 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
         val lineDt = Array("20" + dt(2), dt(1), s"${dt(0)}T${hours}:00:00").mkString("-")
 
         //experm:  plus for avoid inconsistency in results
-        val currentDt = new DateTime(lineDt).plusHours(3)
+        val currentDt = new DateTime(lineDt).plusHours(4)
 
         if (currentDt >= task.lastScrapDt && currentDt <= endDt) {
           Some(new BasicDBObject("_id", UUID.randomUUID.toString)

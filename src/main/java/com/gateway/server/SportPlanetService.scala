@@ -39,7 +39,7 @@ object SportPlanetService {
   val lose = List("homeLose", "awayLose")
 
   //api access errors
-  val error0 = "Bad credential in request"
+  val error0 = "Invalid credential in request"
   val error1 = "Unauthorized access"
 
 
@@ -65,6 +65,8 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
   val pModule = inject [String](MongoPersistorKey)
   val port = inject [Int](HttpServerPort)
+
+  val isSecurityEnable = true
 
   def start = {
     val router = new RouteMatcher
@@ -234,27 +236,31 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     /**
      *
      */
-    router get(RESULT_API, { req: HttpServerRequest =>
+    router.get(RESULT_API, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
+        import QMongo.dateFormatter
+        import rx.lang.scala.Observable
+        import rx.lang.scala.JavaConversions.toScalaObservable
 
-        val resultPageFinder: (String) => rx.Observable[JsonObject] = { day =>
-          day match {
-            case "unknown" => rx.Observable.from(new JsonObject().putString("status", error1))
-            case date => {
-              val dt = QMongo.dateFormatter.parse(day)
-              rxEventBus.send[JsonObject, JsonObject](pModule,
-                pagedResult(new DateTime(dt).minusDays(1).toDate, dt))
-                .map { message: RxMessage[JsonObject] => message.body }
-            }
+        val resultPageFinder: (String) => Observable[JsonObject] = { day => day match {
+          case `error0` => Observable.items(new JsonObject().putString("status", error0))
+          case `error1` => Observable.items(new JsonObject().putString("status", error1))
+          case d => {
+            val dt = dateFormatter parse d
+            toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
+                pagedResult(new DateTime(dt).minusDays(1).toDate, dt))).map({ m => m.body })
           }
+        }}
+
+        val provider: PartialFunction[Boolean, Observable[JsonObject]] = {
+          case true => withSecurity(req).map(resultPageFinder).flatten
+          case false => resultPageFinder(req.params.get("day"))
         }
 
-        access(req, resultPageFinder).subscribe(
-          { message: JsonObject => req.response.end(message.toString) },
-          { th: Throwable => logger.info(th.getMessage); req.response.end(th.getMessage) }
-        )
-
-      }})
+        provider(isSecurityEnable)
+          .subscribe { m:JsonObject => req.response.end(m.toString) }
+      }
+    })
 
     /**
      *  Return recent games by many teams
@@ -372,13 +378,26 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     } getOrElse(Left("Auth type absent in header"))
   }
 
-  /**
-   *
-   * @param r
-   * @param finder
-   * @return
-   */
-  def access(r: HttpServerRequest, finder:(String => rx.Observable[JsonObject])): rx.Observable[JsonObject] = {
+
+  def withSecurity(r: HttpServerRequest): rx.lang.scala.Observable[String] = {
+    import rx.lang.scala.JavaConversions.toScalaObservable
+    readBasicAuth(r).fold(
+      { failure => rx.lang.scala.Observable.items(error0) },
+      { credential:(String, String) =>
+        toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1)))
+          .map({ mes: RxMessage[JsonObject] =>
+            Try {
+              val res = mes.body.getArray("results")
+              val us = res.get(0).asInstanceOf[JsonObject].getString("email")
+              logger.info(s"${us} access: ${r.path}")
+              r.params.get("day")
+            } getOrElse("unknown")
+          })
+      }
+    )
+  }
+
+  /*def access(r: HttpServerRequest, finder:(String => rx.Observable[JsonObject])): rx.Observable[JsonObject] = {
     readBasicAuth(r).fold({ failure => rx.Observable.from(new JsonObject().putString("status", error0)) },
     { credential:(String, String) =>  rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1))
       .flatMap({ message: RxMessage[JsonObject] => Try(message.body().getArray("results"))
@@ -387,6 +406,5 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     }).getOrElse { logger.info(s"anon access to /results/:day"); rx.Observable.from("unknown") }
     }).flatMap(finder)
     })
-  }
-
+  }*/
 }

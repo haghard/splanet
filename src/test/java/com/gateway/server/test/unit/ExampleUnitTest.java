@@ -24,7 +24,7 @@ public class ExampleUnitTest {
       }
     }).subscribe(new Action1<Integer>() {
       @Override public void call(Integer s) {
-        System.out.println("Reduce" + s);
+        System.out.println("reduce " + s);
       }
     });
 
@@ -50,7 +50,7 @@ public class ExampleUnitTest {
     }).subscribe(new Action1<String>() {
       @Override
       public void call(String s) {
-        System.out.println(s);
+        System.out.println("merge " + s);
       }
     });
 
@@ -66,7 +66,7 @@ public class ExampleUnitTest {
     Observable.amb(s, f).subscribe(new Action1<Integer>() {
       @Override
       public void call(Integer integer) {
-       System.out.println(integer);
+       System.out.println("amb: " + integer);
       }
     });
   }
