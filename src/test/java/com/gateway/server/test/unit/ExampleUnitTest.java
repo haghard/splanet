@@ -5,9 +5,9 @@ import org.junit.Test;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import rx.Observable;
-import rx.util.functions.Action1;
-import rx.util.functions.Func2;
-import rx.util.functions.FuncN;
+import rx.functions.Action1;
+import rx.functions.Func2;
+import rx.functions.FuncN;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +41,7 @@ public class ExampleUnitTest {
     Observable<Integer> t = Observable.from(3);
     Observable<Integer> h = Observable.from(4);
 
-    Observable.merge(f, s, t, h).aggregate(null, new Func2<String, Integer, String>() {
+    Observable.merge(f, s, t, h).reduce(null, new Func2<String, Integer, String>() {
       @Override
       public String call(String acc, Integer current) {
         System.out.println(acc + " " + current);
@@ -85,7 +85,7 @@ public class ExampleUnitTest {
         Map<Integer, Integer> result = new HashMap<>();
         int key = 0;
         for (Integer current : array) {
-          result.put(key++ , current);
+          result.put(key++, current);
         }
 
         return result;

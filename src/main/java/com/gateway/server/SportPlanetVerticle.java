@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 
 import static com.gateway.server.MongoQueries.*;
 
+/*
 public class SportPlanetVerticle extends Verticle {
   private int port;
   private Logger logger;
@@ -207,9 +208,11 @@ public class SportPlanetVerticle extends Verticle {
                     logger.info("IDS:" + ImmutableList.copyOf(result.getArray("followedTeams")));
                     resultObs = searchSingle(createTeamQuery(ids), rxEventBus);
 
-                    /*if (ids.hasNext()) {
+                    */
+/*if (ids.hasNext()) {
                       resultObs = loop(searchSingle(createTeamQuery(ids), rxEventBus), ids, rxEventBus);
-                    }*/
+                    }*//*
+
                   }
                   return resultObs;
                 }
@@ -260,13 +263,15 @@ public class SportPlanetVerticle extends Verticle {
     server.coreHttpServer().listen(port);
   }
 
-  /***
+  */
+/***
    * Recursive search team by id
    * @param ob
    * @param teamIds
    * @param rxEventBus
    * @return
-   */
+   *//*
+
   private Observable<RxMessage<JsonObject>> loop(Observable<RxMessage<JsonObject>> ob,
                                                  Iterator<String> teamIds, RxEventBus rxEventBus) {
     if (teamIds.hasNext())
@@ -295,7 +300,8 @@ public class SportPlanetVerticle extends Verticle {
       }
     });
 
-    /*container.deployModule( VERTIX_JDBC_MODULE_NAME, config.getObject( JDBS_MODULE_NAME ), 1, new AsyncResultHandler<String>()
+    */
+/*container.deployModule( VERTIX_JDBC_MODULE_NAME, config.getObject( JDBS_MODULE_NAME ), 1, new AsyncResultHandler<String>()
     {
       @Override
       public void handle( AsyncResult<String> asyncResult )
@@ -306,7 +312,8 @@ public class SportPlanetVerticle extends Verticle {
         }
         logger.info( VERTIX_JDBC_MODULE_NAME + " say " + asyncResult.result() );
       }
-    } );*/
+    } );*//*
+
   }
 
   private void initEventBus() {
@@ -319,3 +326,4 @@ public class SportPlanetVerticle extends Verticle {
     });
   }
 }
+*/

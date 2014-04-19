@@ -86,9 +86,7 @@ dependencies {
   compile 'com.typesafe.akka:akka-actor_2.10:2.3.1'
   compile 'com.typesafe:config:1.0.2'
 
-  compile 'com.netflix.rxjava:rxjava-scala:0.16.1'
-
-  //compile 'com.netflix.rxjava:rxjava-scala:0.17.0'
+  compile 'com.netflix.rxjava:rxjava-scala:0.17.6'
 
   compile 'org.mindrot:jbcrypt:0.3m'
 
