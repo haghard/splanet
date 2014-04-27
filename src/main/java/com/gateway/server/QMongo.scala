@@ -5,6 +5,8 @@ import java.util.Date
 import java.text.SimpleDateFormat
 
 /**
+ * db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})
+ * db.settings.ensureIndex({ startDt:1, endDt:1 })
  *
  * Standing with mongo aggregation framework
  *
@@ -25,7 +27,14 @@ object QMongo {
 
   def format(dt: Date) = dateFormatter.format(dt)
 
-  def pagedResult(startDt: Date, endDt: Date) = new JsonObject()
+  //db.settings.ensureIndex({ startDt:1, endDt:1 })
+  def currentStage(currentDt: Date) = new JsonObject()
+    .putString("collection", "settings")
+    .putString("action", "find")
+    .putObject("matcher", new JsonObject().putString("query",
+      " $and: [ { startDt $lt \"ISODate=" + format(currentDt) + "\" }, { endDt $gt \"ISODate=" + format(currentDt) + "\" }] "))
+  
+  def resultWindow(startDt: Date, endDt: Date) = new JsonObject()
     .putString("collection", "results")
     .putString("action", "find")
     .putObject("matcher", new JsonObject().putString("query",

@@ -127,21 +127,21 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    *
    */
   override def persist(teamNames: List[String], results: List[BasicDBObject], dt: Date): Try[Unit] = {
-    Try({
+    Try {
       db.getCollection(resultCollection).insert(results)
       db.getCollection(scrapCollection).insert(
         BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> results.size)).get)
-    }).recoverWith({
+    } recoverWith {
       case th: Exception => {
         val coll = db.getCollection(resultCollection)
         val cleanQuery = new BasicDBObject("_id", new BasicDBObject("$in", seqAsJavaList(results.map(_.get("_id").asInstanceOf[String]))))
         coll.remove(cleanQuery)
         scala.util.Failure(new Exception("Persist error. Transaction was rollback"))
       }
-    }).map({ r => Try {
+    } map { r => Try {
       updateStanding
       teamNames foreach { team => updateRecent(team, 5) }
-    }})
+    }}
   }
 
   private def updateStanding = {

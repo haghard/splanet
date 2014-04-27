@@ -27,13 +27,13 @@ object Receptionist {
   case class TargetUrl(teamName: String, url: String, lastScrapDt: DateTime)
 }
 
-import WebGetter._
+import com.gateway.server.actors.WebGetter._
 import Receptionist._
 import scala.concurrent.duration._
 import akka.pattern.pipe
 
 class Receptionist(implicit val bindingModule: BindingModule) extends Actor with ActorLogging with
-                                                              Injectable with CollectionImplicits {
+                                                              Injectable with com.gateway.server.actors.CollectionImplicits {
   private val teamNames = inject[List[String]]
   private val dao = inject[Dao]
   private val recentWindow = 5

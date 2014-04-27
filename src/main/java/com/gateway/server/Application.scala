@@ -51,7 +51,17 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         module <~ scraperModule
     }
 
-    new SportPlanetService().start
+
+
+
+    if (config.getBoolean("security")) {
+      val service = new SportPlanetService() with Security
+      service.start
+    } else {
+      val service = new SportPlanetService()
+      service.start
+    }
+
     new ScraperApplication().start
   }
 }

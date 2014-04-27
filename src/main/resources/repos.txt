@@ -3,8 +3,8 @@
 # e.g. perhaps you have your own Maven repository you want to use
 
 # Local Maven repo on filesystem
-#mavenLocal:/Volumes/Data/dev_build_tools/apache-maven-3.1.1/repository
-mavenLocal:~/.m2/repository
+mavenLocal:/Volumes/Data/dev_build_tools/apache-maven-3.1.1/repository
+#mavenLocal:~/.m2/repository
 
 # Maven central
 #maven:http://repo2.maven.org/maven2
@@ -13,4 +13,4 @@ mavenLocal:~/.m2/repository
 #maven:http://oss.sonatype.org/content/repositories/snapshots
 
 # Bintray
-#bintray:http://dl.bintray.com
+bintray:http://dl.bintray.com

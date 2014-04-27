@@ -11,5 +11,7 @@
         "Los Angeles Lakers", "Sacramento Kings", "Utah Jazz"],
 
     "statCollection": "scrapStat",
-    "recentCollection": "recent"
+    "recentCollection": "recent",
+
+    "security": false
 }

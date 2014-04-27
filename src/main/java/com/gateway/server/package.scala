@@ -8,6 +8,7 @@ import io.vertx.rxcore.java.eventbus.RxMessage
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import com.google.common.collect.HashMultiset
 import com.escalatesoft.subcut.inject.BindingId
+import rx.lang.scala.Observable
 
 package object exts {
 
@@ -232,4 +233,6 @@ package object exts {
   object ScraperPeriod extends BindingId
 
   object ScraperDelay extends BindingId
+
+  case class Principal(email: String, password: String)
 }

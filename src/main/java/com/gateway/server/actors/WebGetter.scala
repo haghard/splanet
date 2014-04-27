@@ -79,6 +79,7 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
         val currentDt = new DateTime(lineDt).plusHours(4)
 
         if (currentDt >= task.lastScrapDt && currentDt <= endDt) {
+
           Some(new BasicDBObject("_id", UUID.randomUUID.toString)
             .append("dt", currentDt.toDate)
             .append("homeTeam", tds(1) text)

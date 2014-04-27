@@ -20,6 +20,7 @@ import scala.Predef._
 import scala.util.Failure
 import scala.util.Success
 import org.joda.time.DateTime
+import rx.lang.scala.Observable
 
 object SportPlanetService {
 
@@ -39,34 +40,38 @@ object SportPlanetService {
   val lose = List("homeLose", "awayLose")
 
   //api access errors
-  val error0 = "Invalid credential in request"
+  //val error0 = "Invalid credential in request"
   val error1 = "Unauthorized access"
 
 
-  val RECENT_STAT_API = "/recent-stat/:team"
-  val CONF_API = "/conference"
-  val STANDING_API = "/standing/:flag"
+  val RECENT_STAT_URL = "/recent-stat/:team"
+  val CONF_URL = "/conference"
+  val STANDING_URL = "/standing/:flag"
+  val STANDING2_URL = "/standing2"
+  val RECENT_TEAM_URL = "/recent/:followedTeam"
+  val RESULT_URL = "/results/:day"
+  val PLAYOFF_URL = "/playoff"
+  val TOURNAMENT_STAGE = "/stage/:day"
 
-  val STANDING2_API = "/standing2"
-
-  val RECENT_TEAM_API = "/recent/:followedTeam"
-  val RESULT_API = "/results/:day"
 
   def hash(password: String) =  Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
 }
 
 import SportPlanetService._
-import com.gateway.server.exts.MongoPersistorKey
+
 
 class SportPlanetService(implicit val bindingModule: BindingModule) extends Injectable {
   val logger = inject [Logger]
   val server = inject [HttpServer]
-  val rxEventBus = inject [RxEventBus]
 
+  val rxEventBus = inject [RxEventBus]
   val pModule = inject [String](MongoPersistorKey)
+
   val port = inject [Int](HttpServerPort)
 
-  val isSecurityEnable = true
+  //val isSecurityEnable = false
+
+  def eventBus(): RxEventBus = rxEventBus
 
   def start = {
     val router = new RouteMatcher
@@ -76,7 +81,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *
      **/
     import exts.{ fnToFunc1, fnToHandler1 }
-    router get(RECENT_STAT_API, { req: HttpServerRequest =>
+    router get(RECENT_STAT_URL, { req: HttpServerRequest =>
 
 
       req bodyHandler { buffer: Buffer =>
@@ -101,7 +106,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     /**
      * Basic http auth
      */
-    router get("/auth", { req: HttpServerRequest =>
+    /*router get("/auth", { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         readBasicAuth(req) fold(
         { failure => req.response.end(new JsonObject().putString("status","error").toString) },
@@ -117,9 +122,9 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
               req.response.end(new JsonObject().putString("status","error").toString)
           })
         })
-    }})
+    }})*/
 
-    router get(CONF_API, { req: HttpServerRequest =>
+    router get(CONF_URL, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         rxEventBus.send[JsonObject, JsonObject](pModule, conferenceQuery).subscribe({ mes: RxMessage[JsonObject] =>
           Try(mes.body().getArray(MONGO_RESULT_FIELD)) match {
@@ -143,7 +148,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *  http://192.168.0.143:9000/standing/wins
      *  http://192.168.0.143:9000/standing/lose
      **/
-    router get(STANDING_API, { req: HttpServerRequest =>
+    router get(STANDING_URL, { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         val flag = req.params.get("flag")
 
@@ -175,7 +180,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     /**
      *
      */
-    router get(STANDING2_API, { req: HttpServerRequest =>
+    router get(STANDING2_URL, { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         def request(col: List[String]): rx.Observable[JsonObject] = {
           rx.Observable.merge(col.map { collectionName =>
@@ -201,7 +206,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *   }).promise();
      *   return Rx.Observable.fromPromise(promise);
      */
-    router.get(RECENT_TEAM_API, { req: HttpServerRequest =>
+    router.get(RECENT_TEAM_URL, { req: HttpServerRequest =>
       req.response.setChunked(true)
       req.expectMultiPart(true)
       req.bodyHandler { buffer: Buffer =>
@@ -233,33 +238,59 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       }
     })
 
+    val parseDtError = Observable.items(new JsonObject().
+      putString("status", "error").putString("message", "date parse error"))
+
+    def errorObs(msg: String) = Observable.items(new JsonObject()
+      .putString("status", "error").putString("message", msg))
+
     /**
      *
      */
-    router.get(RESULT_API, { req: HttpServerRequest =>
+    import QMongo.dateFormatter
+    import rx.lang.scala.Observable
+    import rx.lang.scala.JavaConversions.toScalaObservable
+    router.get(RESULT_URL, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
-        import QMongo.dateFormatter
-        import rx.lang.scala.Observable
-        import rx.lang.scala.JavaConversions.toScalaObservable
-
-        val resultPageFinder: (String) => Observable[JsonObject] = { day => day match {
-          case `error0` => Observable.items(new JsonObject().putString("status", error0))
-          case `error1` => Observable.items(new JsonObject().putString("status", error1))
-          case d => {
-            val dt = dateFormatter parse d
-            toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
-                pagedResult(new DateTime(dt).minusDays(1).toDate, dt))).map({ m => m.body })
-          }
-        }}
-
-        val provider: PartialFunction[Boolean, Observable[JsonObject]] = {
-          case true => withSecurity(req).map(resultPageFinder).flatten
-          case false => resultPageFinder(req.params.get("day"))
+        val finder: (Either[String, Principal]) => Observable[JsonObject] = { res =>
+          res.fold({ mes => errorObs(mes)
+          }, { p =>
+            logger.info(s"${p} access ${RESULT_URL} ")
+            Try(dateFormatter.parse(req.params().get("day"))).map({ dt =>
+              toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, resultWindow(new DateTime(dt).minusDays(1).toDate, dt))).map({ m => m.body })
+            }).getOrElse(parseDtError)
+          })
         }
 
-        provider(isSecurityEnable)
-          .subscribe { m:JsonObject => req.response.end(m.toString) }
+        reply(req, finder).subscribe { m:JsonObject => req.response.end(m.toString) }
       }
+    })
+
+    /**
+     *
+     *
+     */
+    router.get(TOURNAMENT_STAGE, { req: HttpServerRequest =>
+      req.bodyHandler { buffer: Buffer =>
+        val finder: (Either[String, Principal]) => Observable[JsonObject] = { res =>
+          res.fold({ mes => errorObs(mes)
+          }, { p =>
+            logger.info(s"${p} access ${RESULT_URL} ")
+            Try(dateFormatter.parse(req.params().get("day"))).map({ dt =>
+              toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, currentStage(dt))).map({ m => m.body })
+            }).getOrElse(parseDtError)
+          })
+        }
+
+        reply(req, finder).subscribe({ m: JsonObject => req.response().end(m.toString) })
+      }
+    })
+
+    /**/
+    router.get(PLAYOFF_URL, { req: HttpServerRequest =>
+      req.bodyHandler({ buffer: Buffer =>
+
+      })
     })
 
     /**
@@ -356,55 +387,14 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
   }
 
   /**
-   *
+   * Provide anon access by default, should be mixed for secure purpose
    * @param req
    * @return
    */
-  def readBasicAuth(req: HttpServerRequest): Either[String, (String, String)] = {
-    val BasicHeader = "Basic (.*)".r
-    Option(req.headers.get("Authorization")).map { v => v match {
-        case BasicHeader(base64) => {
-          try {
-            new String(BaseEncoding.base64().decode(base64)).split(":", 2) match {
-              case Array(username, password) => Right(username -> password)
-              case _ => Left("Invalid basic auth 1")
-            }
-          } catch {
-            case err => Left("Invalid basic auth 2")
-          }
-        }
-        case _ => Left("Bad Auth header")
-        }
-    } getOrElse(Left("Auth type absent in header"))
-  }
+  def lookupPrincipal(req: HttpServerRequest): rx.lang.scala.Observable[Either[String, Principal]] =
+     Observable.items(Right(Principal("anon", "XXX")))
 
+  private def reply(req: HttpServerRequest, finder: (Either[String, Principal]) => Observable[JsonObject]): Observable[JsonObject] =
+    lookupPrincipal(req).map(finder).flatten
 
-  def withSecurity(r: HttpServerRequest): rx.lang.scala.Observable[String] = {
-    import rx.lang.scala.JavaConversions.toScalaObservable
-    readBasicAuth(r).fold(
-      { failure => rx.lang.scala.Observable.items(error0) },
-      { credential:(String, String) =>
-        toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1)))
-          .map({ mes: RxMessage[JsonObject] =>
-            Try {
-              val res = mes.body.getArray("results")
-              val us = res.get(0).asInstanceOf[JsonObject].getString("email")
-              logger.info(s"${us} access: ${r.path}")
-              r.params.get("day")
-            } getOrElse("unknown")
-          })
-      }
-    )
-  }
-
-  /*def access(r: HttpServerRequest, finder:(String => rx.Observable[JsonObject])): rx.Observable[JsonObject] = {
-    readBasicAuth(r).fold({ failure => rx.Observable.from(new JsonObject().putString("status", error0)) },
-    { credential:(String, String) =>  rxEventBus.send[JsonObject, JsonObject](pModule, userByEmail(credential._1))
-      .flatMap({ message: RxMessage[JsonObject] => Try(message.body().getArray("results"))
-      .map({ arr => logger.info(s"${arr.get(0).asInstanceOf[JsonObject].getString("email")} access to /results/:day")
-      rx.Observable.from(r.params.get("day"))
-    }).getOrElse { logger.info(s"anon access to /results/:day"); rx.Observable.from("unknown") }
-    }).flatMap(finder)
-    })
-  }*/
 }
