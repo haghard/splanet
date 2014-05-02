@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit
 import com.github.nscala_time.time.Imports._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
 import scala.collection.immutable.Map
+import java.net.URLEncoder
+
 
 object Receptionist {
 
@@ -18,13 +20,13 @@ object Receptionist {
 
   case class Go(url: TargetUrl)
 
-  case class Connected(dt: DateTime)
+  case class Connected(dt: DateTime, stage: (DateTime, DateTime, String))
 
   case class RemoveResultList(url: String)
 
   case class TryLater(msgError: String)
 
-  case class TargetUrl(teamName: String, url: String, lastScrapDt: DateTime)
+  case class TargetUrl(teamName: String, url: String, startScrapDt: DateTime)
 }
 
 import com.gateway.server.actors.WebGetter._
@@ -40,7 +42,11 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   private var updateBatch = List[BasicDBObject]()
 
   implicit val exc = context.system.dispatchers.lookup("db-dispatcher")
-  Future(dao.open).map({ x => Connected(dao.lastScrapDt.getOrElse(DateTime.now - 10.years)) }) pipeTo context.parent
+  Future(dao.open)
+    .map({ x => Connected(
+          dao.lastScrapDt.getOrElse(DateTime.now - 10.years),
+          dao.currentStage.get)
+  }) pipeTo context.parent
 
   override def receive = waiting()
 
@@ -83,7 +89,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     case ScrapLater(task) => {
       context.system.scheduler.scheduleOnce(
         new FiniteDuration(30, TimeUnit.SECONDS))({
-        context.actorOf(WebGetter(task), name = task.teamName.replace(" ", "%20"))
+        context.actorOf(WebGetter(task), name = URLEncoder.encode(task.teamName, "UTF-8"))
       })(context.system.dispatchers.lookup("scraper-dispatcher"))
     }
 

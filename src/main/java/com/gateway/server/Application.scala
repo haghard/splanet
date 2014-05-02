@@ -38,6 +38,7 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
         bind[String].idBy(RecentCollectionKey).toSingle(config getString ("recentCollection"))
         bind[String].idBy(ScraperStatCollectionKey).toSingle(config getString ("statCollection"))
+        bind[String].idBy(SettingCollectionKey).toSingle(config getString("settingCollection"))
         bind[MongoConfig].toSingle(
           MongoConfig(persistCfg getString("host"), persistCfg.getNumber("port").intValue, persistCfg getString("db_name"),
             persistCfg getString("username"), persistCfg getString("password")))

@@ -2,7 +2,7 @@
 
     "url": "http://allbasketball.ru/teams/{0}.html",
 
-    "scrapPeriodInHour": 8,
+    "scrapPeriodInHour": 1,
 
     "teams": ["Miami Heat", "Indiana Pacers", "Atlanta Hawks", "Philadelphia 76ers", "Toronto Raptors", "Chicago Bulls", "Washington Wizards",
         "Detroit Pistons", "Brooklyn Nets", "Charlotte Bobcats", "New York Knicks", "Cleveland Cavaliers", "Boston Celtics", "Orlando Magic",
@@ -12,6 +12,7 @@
 
     "statCollection": "scrapStat",
     "recentCollection": "recent",
+    "settingCollection": "settings",
 
     "security": false
 }

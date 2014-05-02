@@ -3,7 +3,7 @@
         "port": 9001
     },
 
-    "mongo-persistor" : {
+    /*"mongo-persistor" : {
         "address": "mongo-persistor",
         "host": "troup.mongohq.com",
         "port": 10067,
@@ -11,15 +11,15 @@
         "db_name": "sportPlanet",
         "username": "haghard",
         "password": "suBai3sa"
-    }
+    }*/
 
-    /*"mongo-persistor" : {
+    "mongo-persistor" : {
         "address": "mongo-persistor",
         "host": "192.168.0.143",
         "port": 27017,
         "pool_size": 10,
-        "db_name": "sportPlanet",
+        "db_name": "nba",
         "username": "",
         "password": ""
-    }*/
+    }
 }

@@ -8,7 +8,6 @@ import io.vertx.rxcore.java.eventbus.RxMessage
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import com.google.common.collect.HashMultiset
 import com.escalatesoft.subcut.inject.BindingId
-import rx.lang.scala.Observable
 
 package object exts {
 
@@ -230,9 +229,32 @@ package object exts {
 
   object RecentCollectionKey extends BindingId
 
+  object SettingCollectionKey extends BindingId
+
   object ScraperPeriod extends BindingId
 
   object ScraperDelay extends BindingId
 
   case class Principal(email: String, password: String)
+
+  import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+  import java.util.concurrent.{ AbstractExecutorService, TimeUnit }
+  import java.util.Collections
+
+  object ExecutionContextExecutorServiceBridge {
+    def apply(ec: ExecutionContext): ExecutionContextExecutorService = ec match {
+      case null => throw null
+      case eces: ExecutionContextExecutorService => eces
+      case other => new AbstractExecutorService with ExecutionContextExecutorService {
+        override def prepare(): ExecutionContext = other
+        override def isShutdown = false
+        override def isTerminated = false
+        override def shutdown() = ()
+        override def shutdownNow() = Collections.emptyList[Runnable]
+        override def execute(runnable: Runnable): Unit = other execute runnable
+        override def reportFailure(t: Throwable): Unit = other reportFailure t
+        override def awaitTermination(length: Long,unit: TimeUnit): Boolean = false
+      }
+    }
+  }
 }

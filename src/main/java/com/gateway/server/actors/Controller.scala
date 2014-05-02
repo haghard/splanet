@@ -47,7 +47,7 @@ class Controller(implicit val bindingModule: BindingModule) extends Actor with I
   def active(): Receive = {
     case Go => log.info("Ignore scheduling since we are active now")
 
-    case Connected(dt) => {
+    case Connected(dt, _) => {
       val teamNames = inject[List[String]]
       val url = inject[String](ScraperUrl)
       teamNames foreach { x =>

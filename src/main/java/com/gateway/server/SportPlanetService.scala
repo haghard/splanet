@@ -50,8 +50,10 @@ object SportPlanetService {
   val STANDING2_URL = "/standing2"
   val RECENT_TEAM_URL = "/recent/:followedTeam"
   val RESULT_URL = "/results/:day"
-  val PLAYOFF_URL = "/playoff"
   val TOURNAMENT_STAGE = "/stage/:day"
+
+  val regularEx = "(regular-)(\\d{4}/\\d{4})".r
+  val playoffEx = "(playoff-)(\\d{4}/\\d{4})".r
 
 
   def hash(password: String) =  Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
@@ -69,8 +71,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
   val port = inject [Int](HttpServerPort)
 
-  //val isSecurityEnable = false
-
   def eventBus(): RxEventBus = rxEventBus
 
   def start = {
@@ -82,8 +82,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      **/
     import exts.{ fnToFunc1, fnToHandler1 }
     router get(RECENT_STAT_URL, { req: HttpServerRequest =>
-
-
       req bodyHandler { buffer: Buffer =>
         Try(URLDecoder.decode(req.params.get("team"), "UTF-8")).map({ teamName =>
           rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe({ mes: RxMessage[JsonObject] =>
@@ -241,6 +239,9 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     val parseDtError = Observable.items(new JsonObject().
       putString("status", "error").putString("message", "date parse error"))
 
+    val stageError = Observable.items(new JsonObject().
+      putString("status", "error").putString("message", "stage hould be playoff or regular"))
+
     def errorObs(msg: String) = Observable.items(new JsonObject()
       .putString("status", "error").putString("message", msg))
 
@@ -255,10 +256,27 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
         val finder: (Either[String, Principal]) => Observable[JsonObject] = { res =>
           res.fold({ mes => errorObs(mes)
           }, { p =>
-            logger.info(s"${p} access ${RESULT_URL} ")
             Try(dateFormatter.parse(req.params().get("day"))).map({ dt =>
-              toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, resultWindow(new DateTime(dt).minusDays(1).toDate, dt))).map({ m => m.body })
+              logger.info(s"${p} access ${RESULT_URL} ${dt}")
+              toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, currentStage(dt))) map { m =>
+                val results = m.body.getArray("results")
+                results.get(0).asInstanceOf[JsonObject].getString("name")
+              } flatMap { stageName => stageName match {
+                  case playoffEx(p, year) => {
+                    val jObj = new JsonObject()
+                    jObj.putString("stage", "playOff")
+                    Observable.items(jObj)
+                  }
+
+                  case regularEx(p, year) =>
+                    toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
+                      resultWindow(new DateTime(dt).minusDays(1).toDate, dt))).map({ m => m.body })
+
+                  case _ => stageError
+                }
+              }
             }).getOrElse(parseDtError)
+
           })
         }
 
@@ -282,16 +300,10 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
           })
         }
 
-        reply(req, finder).subscribe({ m: JsonObject => req.response().end(m.toString) })
+        reply(req, finder).subscribe { m: JsonObject => req.response().end(m.toString) }
       }
     })
 
-    /**/
-    router.get(PLAYOFF_URL, { req: HttpServerRequest =>
-      req.bodyHandler({ buffer: Buffer =>
-
-      })
-    })
 
     /**
      *  Return recent games by many teams

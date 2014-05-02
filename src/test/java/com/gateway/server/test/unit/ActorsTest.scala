@@ -12,6 +12,7 @@ import java.util.Date
 import org.joda.time.DateTime
 import com.gateway.server.exts.MongoConfig
 import java.text.SimpleDateFormat
+import com.gateway.server.IO.{AsyncWebClient, WebClient}
 
 //import com.mongodb.{BasicDBObjectBuilder, BasicDBObject, MongoClient}
 import com.gateway.server.actors.{ScraperApplication, MongoDriverDao, Dao}
@@ -25,14 +26,16 @@ class ActorsTest extends FunSuite {
     import module._
     import scala.concurrent.duration._
     import com.escalatesoft.subcut.inject._
+
     bind [Dao] to newInstanceOf [MongoDriverDao]
     bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
-    bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "sportPlanet", "", ""))
-    bind[List[String]].toSingle(List("Oklahoma City Thunder", "Miami Heat", "Chicago Bulls"))
+    bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "nba", "", ""))
+    bind[List[String]].toSingle(List("Oklahoma City Thunder"/*, "Miami Heat", "Chicago Bulls"*/))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
     bind[String].idBy(ScraperStatCollectionKey).toSingle("scrapStat")
     bind[String].idBy(RecentCollectionKey).toSingle("recent")
+    bind[String].idBy(SettingCollectionKey).toSingle("settings")
 
     bind[FiniteDuration].idBy(ScraperDelay).toSingle(0 second)
     bind[FiniteDuration].idBy(ScraperPeriod).toSingle(20 second)
@@ -93,11 +96,11 @@ class ActorsTest extends FunSuite {
       println(currentDt)
     }
    */
-  /*
-      test(" test dt ") {
+
+   test(" test dt ") {
       new ScraperApplication().start
       Thread.sleep(120000);
-    }*/
+   }
 
   /*test(" test dt ") {
     val dao = new DaoMock {

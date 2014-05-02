@@ -7,14 +7,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import java.util.Date
 import com.mongodb._
-import scala.Some
 import scala.collection.JavaConversions._
-import com.github.nscala_time.time.TypeImports.DateTime
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
-import com.gateway.server.exts.{RecentCollectionKey, MongoResponseArrayKey, ScraperStatCollectionKey, MongoConfig}
+import com.gateway.server.exts._
 import scala.util.Try
 import com.google.common.base.Strings
 import java.util
+import scala.Some
+import com.gateway.server.exts.MongoConfig
+import org.joda.time.DateTime
 
 trait Dao extends Injectable {
 
@@ -35,6 +36,8 @@ trait Dao extends Injectable {
   
   def recentCollection = inject[String](RecentCollectionKey)
 
+  def settingCollection = inject[String](SettingCollectionKey)
+
   /**
    *
    */
@@ -50,6 +53,12 @@ trait Dao extends Injectable {
    * @return
    */
   def lastScrapDt: Option[DateTime]
+
+  /**
+   *
+   * @return
+   */
+  def currentStage: Option[(DateTime, DateTime, String)]
 
   /**
    *
@@ -180,6 +189,21 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
       BasicDBObjectBuilder.start("name", teamName).get,
       BasicDBObjectBuilder.start("$set", BasicDBObjectBuilder.start("games_id", ids).get).get
     )
+  }
+
+  override def currentStage: Option[(DateTime, DateTime, String)] = {
+    val now = DateTime.now()
+    val setCollection = db.getCollection(settingCollection)
+
+    Option(setCollection.findOne(
+      new BasicDBObject("$and", java.util.Arrays.asList(
+        new BasicDBObject("startDt", new BasicDBObject("$lt", now.toDate)),
+        new BasicDBObject("endDt", new BasicDBObject("$gt", now.toDate))
+      )
+    ))).map({ obj =>
+         (new DateTime(obj.get("startDt").asInstanceOf[Date]),
+          new DateTime(obj.get("endDt").asInstanceOf[Date]),
+          obj.get("name").asInstanceOf[String])})
   }
 
   override def close = mongoClient.close

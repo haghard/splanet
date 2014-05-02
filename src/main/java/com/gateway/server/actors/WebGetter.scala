@@ -47,9 +47,9 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
   private def extractResult(task: TargetUrl)(endDt: DateTime): Future[ProcessedResults] = future {
     import scala.collection.convert.WrapAsScala._
     val correctUrl = task.url.replace("+", "%20")
-    log.info("Collect result from {} between {}  {}", task.url, task.lastScrapDt.toDate, endDt.toDate)
+    log.info("Collect result from {} between {}  {}", task.url, task.startScrapDt.toDate, endDt.toDate)
 
-    val doc = Jsoup.connect(correctUrl).timeout(10000).get
+    val doc = Jsoup.connect(correctUrl).ignoreHttpErrors(true).timeout(5000).get
     val table = doc.oneByClass("stat").toList
 
     val list = for {
@@ -75,11 +75,8 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
 
         val lineDt = Array("20" + dt(2), dt(1), s"${dt(0)}T${hours}:00:00").mkString("-")
 
-        //experm:  plus for avoid inconsistency in results
         val currentDt = new DateTime(lineDt).plusHours(4)
-
-        if (currentDt >= task.lastScrapDt && currentDt <= endDt) {
-
+        if (currentDt >= task.startScrapDt && currentDt <= endDt) {
           Some(new BasicDBObject("_id", UUID.randomUUID.toString)
             .append("dt", currentDt.toDate)
             .append("homeTeam", tds(1) text)
