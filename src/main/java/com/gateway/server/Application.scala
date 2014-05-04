@@ -36,7 +36,6 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         bind[Dao] to newInstanceOf [MongoDriverDao]
         bind[List[String]].toSingle(config.getStringList("teams").toList)
         bind[String].idBy(ScraperUrl).toSingle(config getString ("url"))
-        bind[String].idBy(RecentCollectionKey).toSingle(config getString ("recentCollection"))
         bind[String].idBy(ScraperStatCollectionKey).toSingle(config getString ("statCollection"))
         bind[String].idBy(SettingCollectionKey).toSingle(config getString("settingCollection"))
         bind[MongoConfig].toSingle(

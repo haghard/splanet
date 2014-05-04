@@ -8,6 +8,10 @@ import io.vertx.rxcore.java.eventbus.RxMessage
 import org.vertx.java.core.json.{JsonArray, JsonObject}
 import com.google.common.collect.HashMultiset
 import com.escalatesoft.subcut.inject.BindingId
+import com.gateway.server.actors.Receptionist.Stage
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import java.util.concurrent.{ AbstractExecutorService, TimeUnit }
+import java.util.Collections
 
 package object exts {
 
@@ -227,8 +231,6 @@ package object exts {
 
   object ScraperStatCollectionKey extends BindingId
 
-  object RecentCollectionKey extends BindingId
-
   object SettingCollectionKey extends BindingId
 
   object ScraperPeriod extends BindingId
@@ -237,9 +239,6 @@ package object exts {
 
   case class Principal(email: String, password: String)
 
-  import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
-  import java.util.concurrent.{ AbstractExecutorService, TimeUnit }
-  import java.util.Collections
 
   object ExecutionContextExecutorServiceBridge {
     def apply(ec: ExecutionContext): ExecutionContextExecutorService = ec match {
@@ -257,4 +256,11 @@ package object exts {
       }
     }
   }
+
+  private [server] implicit val stageOrdering = new Ordering[Stage] {
+    override def compare(x: Stage, y: Stage) = x.end.compareTo(y.end)
+  }
+
+  private [server] val regularEx = "(regular-)(\\d{4}/\\d{4})".r
+  private [server] val playoffEx = "(playoff-)(\\d{4}/\\d{4})".r
 }

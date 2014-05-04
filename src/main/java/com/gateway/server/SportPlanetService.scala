@@ -15,12 +15,14 @@ import org.vertx.java.core.json.{JsonArray, JsonObject}
 import io.vertx.rxcore.java.eventbus.{RxMessage, RxEventBus}
 import com.escalatesoft.subcut.inject.{BindingModule, Injectable}
 import org.vertx.java.core.http.{HttpServerRequest, RouteMatcher, HttpServer}
-import com.google.common.io.BaseEncoding
 import scala.Predef._
-import scala.util.Failure
-import scala.util.Success
 import org.joda.time.DateTime
 import rx.lang.scala.Observable
+import rx.lang.scala.JavaConversions._
+import scala.util.Failure
+import scala.util.Success
+import com.gateway.server.exts.Principal
+import java.util.Date
 
 object SportPlanetService {
 
@@ -51,10 +53,6 @@ object SportPlanetService {
   val RECENT_TEAM_URL = "/recent/:followedTeam"
   val RESULT_URL = "/results/:day"
   val TOURNAMENT_STAGE = "/stage/:day"
-
-  val regularEx = "(regular-)(\\d{4}/\\d{4})".r
-  val playoffEx = "(playoff-)(\\d{4}/\\d{4})".r
-
 
   def hash(password: String) =  Hashing.md5.newHasher.putString(password, Charsets.UTF_8).hash.toString
 }
@@ -258,16 +256,12 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
           }, { p =>
             Try(dateFormatter.parse(req.params().get("day"))).map({ dt =>
               logger.info(s"${p} access ${RESULT_URL} ${dt}")
-              toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, currentStage(dt))) map { m =>
-                val results = m.body.getArray("results")
-                results.get(0).asInstanceOf[JsonObject].getString("name")
-              } flatMap { stageName => stageName match {
+              currStage(dt) flatMap { stageName => stageName match {
                   case playoffEx(p, year) => {
                     val jObj = new JsonObject()
                     jObj.putString("stage", "playOff")
                     Observable.items(jObj)
                   }
-
                   case regularEx(p, year) =>
                     toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
                       resultWindow(new DateTime(dt).minusDays(1).toDate, dt))).map({ m => m.body })
@@ -276,7 +270,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
                 }
               }
             }).getOrElse(parseDtError)
-
           })
         }
 
@@ -408,5 +401,11 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
   private def reply(req: HttpServerRequest, finder: (Either[String, Principal]) => Observable[JsonObject]): Observable[JsonObject] =
     lookupPrincipal(req).map(finder).flatten
+
+  private def currStage(dt: Date) = toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule, currentStage(dt)))
+    .map { m =>
+    val results = m.body.getArray("results")
+    results.get(0).asInstanceOf[JsonObject].getString("name")
+  }
 
 }

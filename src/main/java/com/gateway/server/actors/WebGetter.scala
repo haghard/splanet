@@ -6,12 +6,12 @@ import com.mongodb.BasicDBObject
 import org.jsoup.Jsoup
 import java.util.UUID
 import com.github.nscala_time.time.Imports._
-import scala.collection.immutable.Map
+import scala.collection.immutable.{TreeSet, Map}
 
 import akka.pattern.pipe
 import akka.actor.Status.Failure
 import scala.Some
-import com.gateway.server.actors.Receptionist.TargetUrl
+import com.gateway.server.actors.Receptionist.{Stage, TargetUrl}
 
 object WebGetter {
 
@@ -23,17 +23,18 @@ object WebGetter {
 
   case class Result(dt: String, homeTeam: String, awayTeam: String, homeScore: Int, awayScore: Int)
 
-  def apply(task: TargetUrl): Props = Props(new WebGetter(task))
+  def apply(task: TargetUrl, stages: TreeSet[Stage]): Props = Props(new WebGetter(task, stages))
     .withDispatcher("scraper-dispatcher")
 }
 
-class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImplicits {
+class WebGetter(task: TargetUrl, stages: TreeSet[Stage]) extends Actor with ActorLogging with ParserImplicits {
   import WebGetter._
   import scala.collection.immutable.Map
 
   private val timeExp = "\\[(\\d+):(\\d+)\\]".r
   private implicit val executor = context.system.dispatchers.lookup("scraper-dispatcher")
 
+  //new DateTime(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").parse("2014-04-19T00:00:00Z"))
   extractResult(task) (DateTime.now) pipeTo self
 
   def receive: Receive = ({
@@ -74,15 +75,23 @@ class WebGetter(task: TargetUrl) extends Actor with ActorLogging with ParserImpl
         }
 
         val lineDt = Array("20" + dt(2), dt(1), s"${dt(0)}T${hours}:00:00").mkString("-")
-
         val currentDt = new DateTime(lineDt).plusHours(4)
+
         if (currentDt >= task.startScrapDt && currentDt <= endDt) {
+          //find stage
+          val stage = stages.find({ st => st.start.isBefore(currentDt) && st.end.isAfter(currentDt) })
+          if(stage.isEmpty) {
+            throw new IllegalArgumentException("Stage should be defined")
+          }
+
           Some(new BasicDBObject("_id", UUID.randomUUID.toString)
             .append("dt", currentDt.toDate)
             .append("homeTeam", tds(1) text)
             .append("awayTeam", tds(3) text)
             .append("homeScore", scoreElements(0).text.toInt)
-            .append("awayScore", scoreElements(1).text.toInt))
+            .append("awayScore", scoreElements(1).text.toInt)
+            .append("stage", stage.get.name)
+          )
         } else {
           None
         }

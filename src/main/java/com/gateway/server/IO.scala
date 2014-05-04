@@ -4,8 +4,6 @@ import java.util.concurrent.{TimeUnit, ExecutorService}
 import scala.concurrent.Future
 import com.ning.http.client.{AsyncHttpClientConfig, AsyncHttpClient}
 import scala.util.{Failure, Success, Try}
-import com.gateway.server.actors.Receptionist.BadStatusException
-
 /**
  *
  */

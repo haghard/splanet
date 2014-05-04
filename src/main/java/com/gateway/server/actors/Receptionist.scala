@@ -6,9 +6,8 @@ import scala.concurrent.Future
 import java.util.concurrent.TimeUnit
 import com.github.nscala_time.time.Imports._
 import com.escalatesoft.subcut.inject.{Injectable, BindingModule}
-import scala.collection.immutable.Map
+import scala.collection.immutable.{TreeSet, Map}
 import java.net.URLEncoder
-
 
 object Receptionist {
 
@@ -18,9 +17,12 @@ object Receptionist {
 
   case object UpdateCompiled
 
-  case class Go(url: TargetUrl)
+  case class Go(url: TargetUrl, stages: TreeSet[Stage])
 
-  case class Connected(dt: DateTime, stage: (DateTime, DateTime, String))
+  case class Connected(dt: DateTime, stages: TreeSet[Stage])
+
+  //it's did't used as message
+  case class Stage(start: DateTime, end:DateTime, name: String)
 
   case class RemoveResultList(url: String)
 
@@ -41,17 +43,23 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   private val recentWindow = 5
   private var updateBatch = List[BasicDBObject]()
 
+  import com.gateway.server.exts.stageOrdering
+  private var stages = TreeSet[Stage]()
+
   implicit val exc = context.system.dispatchers.lookup("db-dispatcher")
-  Future(dao.open)
-    .map({ x => Connected(
+  Future(dao.open).map({ x => Connected(
           dao.lastScrapDt.getOrElse(DateTime.now - 10.years),
-          dao.currentStage.get)
+          dao.stages
+          )
   }) pipeTo context.parent
 
   override def receive = waiting()
 
   def waiting(): Receive = {
-    case Go(targetUrl) => context.become(runNext(List(targetUrl)))
+    case Go(targetUrl, stages) => {
+      this.stages = stages
+      context.become(runNext(List(targetUrl)))
+    }
   }
 
   def dequeueJob(q: List[TargetUrl], map: Map[TargetUrl, List[BasicDBObject]], scrapDt: DateTime): Receive = {
@@ -82,14 +90,14 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   }
 
   def running(q: List[TargetUrl]): Receive = {
-    case Go(targetUrl) => context.become(enqueueJob(q, targetUrl))
+    case Go(targetUrl, _) => context.become(enqueueJob(q, targetUrl))
 
     case ProcessedResults(map, scrapDt) => context.become(dequeueJob(q, map, scrapDt))
 
     case ScrapLater(task) => {
       context.system.scheduler.scheduleOnce(
         new FiniteDuration(30, TimeUnit.SECONDS))({
-        context.actorOf(WebGetter(task), name = URLEncoder.encode(task.teamName, "UTF-8"))
+        context.actorOf(WebGetter(task, stages), name = URLEncoder.encode(task.teamName, "UTF-8"))
       })(context.system.dispatchers.lookup("scraper-dispatcher"))
     }
 
@@ -118,7 +126,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
     if(q.isEmpty) waiting()
     else {
       val task = q.head
-      context.actorOf(WebGetter(task), name = task.teamName.replace(" ", "%20"))
+      context.actorOf(WebGetter(task, stages), name = task.teamName.replace(" ", "%20"))
       running(q)
     }
   }
