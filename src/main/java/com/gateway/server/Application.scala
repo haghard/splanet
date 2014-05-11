@@ -25,7 +25,7 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         bind[Int].idBy(HttpServerPort).toSingle(httpPort)
     }
 
-    val config = ConfigFactory load
+    val config = ConfigFactory.load
 
     val scraperModule = newBindingModule { module =>
         import module._
@@ -51,16 +51,11 @@ class Application(val server: HttpServer, val bus: RxEventBus, val persistCfg: J
         module <~ scraperModule
     }
 
+    import com.gateway.server.Security
+    config.getBoolean("security") ?
+      (new SportPlanetService() with Security).start |
+        new SportPlanetService().start
 
-
-
-    if (config.getBoolean("security")) {
-      val service = new SportPlanetService() with Security
-      service.start
-    } else {
-      val service = new SportPlanetService()
-      service.start
-    }
 
     new ScraperApplication().start
   }

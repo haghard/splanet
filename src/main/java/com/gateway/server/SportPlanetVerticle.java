@@ -20,10 +20,10 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 import rx.Observable;
-import rx.util.functions.Action1;
-import rx.util.functions.Func1;
-import rx.util.functions.Func2;
-import rx.util.functions.FuncN;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.functions.Func2;
+import rx.functions.FuncN;
 
 import java.util.*;
 import java.util.regex.Pattern;

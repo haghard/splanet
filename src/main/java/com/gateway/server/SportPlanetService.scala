@@ -41,11 +41,6 @@ object SportPlanetService {
   val wins = List("homeWin", "awayWin")
   val lose = List("homeLose", "awayLose")
 
-  //api access errors
-  //val error0 = "Invalid credential in request"
-  val error1 = "Unauthorized access"
-
-
   val RECENT_STAT_URL = "/recent-stat/:team"
   val CONF_URL = "/conference"
   val STANDING_URL = "/standing/:flag"
@@ -66,7 +61,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
   val rxEventBus = inject [RxEventBus]
   val pModule = inject [String](MongoPersistorKey)
-
   val port = inject [Int](HttpServerPort)
 
   def eventBus(): RxEventBus = rxEventBus
@@ -79,7 +73,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      *
      **/
     import exts.{ fnToFunc1, fnToHandler1 }
-    router get(RECENT_STAT_URL, { req: HttpServerRequest =>
+    router.get(RECENT_STAT_URL, { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         Try(URLDecoder.decode(req.params.get("team"), "UTF-8")).map({ teamName =>
           rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe({ mes: RxMessage[JsonObject] =>
@@ -258,9 +252,18 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
               logger.info(s"${p} access ${RESULT_URL} ${dt}")
               currStage(dt) flatMap { stageName => stageName match {
                   case playoffEx(p, year) => {
-                    val jObj = new JsonObject()
-                    jObj.putString("stage", "playOff")
-                    Observable.items(jObj)
+                    rxEventBus.send[JsonObject, JsonObject](pModule, playoffResults(stageName, "homeTeam"))
+
+                    (toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
+                        playoffResults(stageName, "homeTeam"))) zip
+                      toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
+                        playoffResults(stageName, "awayTeam")))) map {
+                      case (lm, rm) => Try(mergePlayoffResults(lm.body, rm.body)).recover({
+                        case ex: IllegalArgumentException => new JsonObject()
+                          .putString("status", "error")
+                          .putString("message", ex.getMessage)
+                      }).get
+                    }
                   }
                   case regularEx(p, year) =>
                     toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
@@ -284,7 +287,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     router.get(TOURNAMENT_STAGE, { req: HttpServerRequest =>
       req.bodyHandler { buffer: Buffer =>
         val finder: (Either[String, Principal]) => Observable[JsonObject] = { res =>
-          res.fold({ mes => errorObs(mes)
+          res fold({ mes => errorObs(mes)
           }, { p =>
             logger.info(s"${p} access ${RESULT_URL} ")
             Try(dateFormatter.parse(req.params().get("day"))).map({ dt =>
@@ -293,10 +296,9 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
           })
         }
 
-        reply(req, finder).subscribe { m: JsonObject => req.response().end(m.toString) }
+        reply(req, finder).subscribe { m: JsonObject => req.response.end(m.toString) }
       }
     })
-
 
     /**
      *  Return recent games by many teams
@@ -362,7 +364,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
       req.response.setChunked(true)
       req.expectMultiPart(true)
       req.bodyHandler({ buffer: Buffer =>
-        if (!buffer.getString(0, buffer.length).matches("email=[\\w+@[a-zA-Z]+?\\.[a-zA-Z]{2,6}]+&password+=[\\w]+"))
+        if (!buffer.getString(0, buffer.length).matches("""email=[\w+@[a-zA-Z]+?\.[a-zA-Z]{2,6}]+&password+=[\w]+"""))
           req.response.sendFile(WEBROOT + LOGIN_FAILED_PAGE)
         val email = req.formAttributes.get(USER_EMAIL)
         val passwordHash = hash(req.formAttributes.get(USER_PASSWORD))

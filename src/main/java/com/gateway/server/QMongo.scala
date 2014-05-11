@@ -1,8 +1,9 @@
 package com.gateway.server
 
-import org.vertx.java.core.json.{JsonArray, JsonObject}
 import java.util.Date
 import java.text.SimpleDateFormat
+import org.vertx.java.core.json.JsonObject
+import org.vertx.java.core.json.JsonArray
 
 /**
  * db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})
@@ -29,11 +30,18 @@ object QMongo {
 
   //db.settings.ensureIndex({ startDt:1, endDt:1 })
   def currentStage(currentDt: Date) = new JsonObject()
-    .putString("collection", "settings")
-    .putString("action", "find")
-    .putObject("matcher", new JsonObject().putString("query",
+      .putString("collection", "settings")
+      .putString("action", "find")
+      .putObject("matcher", new JsonObject().putString("query",
       " $and: [ { startDt $lt \"ISODate=" + format(currentDt) + "\" }, { endDt $gt \"ISODate=" + format(currentDt) + "\" }] "))
-  
+
+  def playoffResults(stageName: String, location: String) = new JsonObject()
+    .putString("collection", s"${location}-${stageName}")
+    .putString("action", "find")
+    .putObject("sort", new JsonObject().putNumber("dt", -1))
+    .putNumber("limit", 30)
+
+
   def resultWindow(startDt: Date, endDt: Date) = new JsonObject()
     .putString("collection", "results")
     .putString("action", "find")
@@ -79,29 +87,6 @@ object QMongo {
     .putString("action", "find")
     .putObject("matcher", new JsonObject()
     .putString("query", " email $eq \"" + email + "\"" + " password $eq \"" + passwordHash + "\""))
-
-  /*def followedTeams(ids: java.util.Iterator[Object]): JsonObject = {
-    import scala.collection.JavaConversions.asScalaIterator
-    val scalaIds: Iterator[Object] = ids
-
-    var first = true
-    val resultsLine = new StringBuilder()
-
-    for (id <- scalaIds) {
-      if (first) {
-        resultsLine.append("\"").append(id.toString).append("\"");
-        first = false;
-      } else {
-        resultsLine.append(",").append("\"").append(id.toString).append("\"");
-      }
-    }
-
-    new JsonObject().putString("collection", "teams")
-      .putString("action", "find")
-      .putObject("matcher", new JsonObject()
-      .putString("query", " _id $in { " + resultsLine.toString() + " }"))
-  }
-  */
 
   //db.results.ensureIndex({dt:1,homeTeam:1, awayTeam:1})
   def recentStat(teamName: String, limit: Int) = new JsonObject()

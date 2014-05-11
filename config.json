@@ -17,7 +17,7 @@
         "address": "mongo-persistor",
         "host": "192.168.0.143",
         "port": 27017,
-        "pool_size": 10,
+        "pool_size": 15,
         "db_name": "nba",
         "username": "",
         "password": ""

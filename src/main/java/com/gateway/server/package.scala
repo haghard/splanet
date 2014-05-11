@@ -2,7 +2,7 @@ package com.gateway.server
 
 import org.vertx.java.core.http.{HttpServerRequest, HttpServerResponse}
 import org.vertx.java.core.Handler
-import rx.util.functions.{Func2, Func1, Action1}
+import rx.functions.{Func2, Func1, Action1}
 import java.util.concurrent.atomic.AtomicInteger
 import io.vertx.rxcore.java.eventbus.RxMessage
 import org.vertx.java.core.json.{JsonArray, JsonObject}
@@ -80,8 +80,30 @@ package object exts {
     }
   }
 
+  def mergePlayoffResults(homeResults: JsonObject, awayResults: JsonObject): JsonObject = {
+    (homeResults.getArray(MONGO_RESULT_FIELD).size, awayResults.getArray(MONGO_RESULT_FIELD).size()) match {
+      case (16,16) => {
+        val homeArray = homeResults.getArray(MONGO_RESULT_FIELD).iterator.asScala
+        val awayArray = awayResults.getArray(MONGO_RESULT_FIELD).iterator.asScala
+        val table = for { (l, r) <- homeArray zip awayArray } yield {
+          val lObj = l.asInstanceOf[JsonObject]
+          val rObj = r.asInstanceOf[JsonObject]
+          new JsonObject()
+            .putString("team", lObj.getString("team"))
+            .putNumber("w", lObj.getNumber("w").intValue() + rObj.getNumber("w").intValue())
+            .putNumber("l", lObj.getNumber("l").intValue() + rObj.getNumber("l").intValue())
+        }
+        new JsonObject().putArray(MONGO_RESULT_FIELD,
+          table.foldLeft(new JsonArray()) { (acc: JsonArray, cur: JsonObject) => acc.add(cur) })
+      }
+
+      case other =>
+        throw new IllegalArgumentException("Playoff size should be equals to (16,16) but found" + other)
+    }
+  }
+
   def reduceAll = { ( json: JsonObject, message: RxMessage[JsonObject] ) =>
-    json getArray(MONGO_RESULT_FIELD) size match {
+    json.getArray(MONGO_RESULT_FIELD) size match {
       case 0 => message.body
       case 30 => {
         val newArray = message.body.getArray(MONGO_RESULT_FIELD)
@@ -261,6 +283,16 @@ package object exts {
     override def compare(x: Stage, y: Stage) = x.end.compareTo(y.end)
   }
 
-  private [server] val regularEx = "(regular-)(\\d{4}/\\d{4})".r
-  private [server] val playoffEx = "(playoff-)(\\d{4}/\\d{4})".r
+  private [server] val regularEx = """(regular-)(\d{4}/\d{4})""".r
+  private [server] val playoffEx = """(playoff-)(\d{4}/\d{4})""".r
+
+
+  case class Bool(b: Boolean) {
+    def ?[X](t: => X) = new {
+      def |(f: => X) = if(b) t else f
+    }
+  }
+
+  implicit def BooleanBool(b: Boolean) = Bool(b)
+
 }
