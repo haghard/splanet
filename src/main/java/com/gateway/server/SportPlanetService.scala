@@ -53,7 +53,7 @@ object SportPlanetService {
 }
 
 import SportPlanetService._
-
+import exts.ImplicitFunctionConversions._
 
 class SportPlanetService(implicit val bindingModule: BindingModule) extends Injectable {
   val logger = inject [Logger]
@@ -72,11 +72,10 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
      * Rest resource /recent-stat/:team
      *
      **/
-    import exts.{ fnToFunc1, fnToHandler1 }
     router.get(RECENT_STAT_URL, { req: HttpServerRequest =>
       req bodyHandler { buffer: Buffer =>
         Try(URLDecoder.decode(req.params.get("team"), "UTF-8")).map({ teamName =>
-          rxEventBus.send(pModule, recentStat(teamName, 10)).subscribe({ mes: RxMessage[JsonObject] =>
+          rxEventBus.send[JsonObject, JsonObject](pModule, recentStat(teamName, 10)).subscribe({ mes: RxMessage[JsonObject] =>
             RecentHealthProcessor(mes, teamName)
               .fold(req.response.end(new JsonObject().putString("status", "empty").toString))({ js: JsonObject =>
                   req.response.end(js.toString) })
@@ -252,7 +251,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
               logger.info(s"${p} access ${RESULT_URL} ${dt}")
               currStage(dt) flatMap { stageName => stageName match {
                   case playoffEx(p, year) => {
-                    rxEventBus.send[JsonObject, JsonObject](pModule, playoffResults(stageName, "homeTeam"))
 
                     (toScalaObservable(rxEventBus.send[JsonObject, JsonObject](pModule,
                         playoffResults(stageName, "homeTeam"))) zip
@@ -276,7 +274,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
           })
         }
 
-        reply(req, finder).subscribe { m:JsonObject => req.response.end(m.toString) }
+        reply(req, finder).subscribe { json:JsonObject => writeResponse(json, req) }
       }
     })
 
@@ -296,10 +294,14 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
           })
         }
 
-        reply(req, finder).subscribe { m: JsonObject => req.response.end(m.toString) }
+        reply(req, finder).subscribe { json: JsonObject => writeResponse(json, req) }
       }
-    })
+    })     
+    
+    router.get("api", { req: HttpServerRequest =>
 
+    })
+    
     /**
      *  Return recent games by many teams
      *  passed as data parameter
@@ -359,7 +361,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
         }
     })
 
-    import exts.fnToHandler1
+    import exts.ImplicitFunctionConversions.{fnToHandler1, fnToAction1 }
     router.post("/center", { req: HttpServerRequest =>
       req.response.setChunked(true)
       req.expectMultiPart(true)
@@ -369,7 +371,6 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
         val email = req.formAttributes.get(USER_EMAIL)
         val passwordHash = hash(req.formAttributes.get(USER_PASSWORD))
 
-        import exts.{ fnToAction1 }
         val t = rxEventBus.send[JsonObject, JsonObject](pModule, userQuery(passwordHash, email))
         .subscribe({ mes: RxMessage[JsonObject] =>
           val followedTeams = ResponseFieldParser(mes, "followedTeams")
@@ -409,5 +410,7 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
     val results = m.body.getArray("results")
     results.get(0).asInstanceOf[JsonObject].getString("name")
   }
+
+  private def writeResponse(content: JsonObject, req: HttpServerRequest) = req.response.end(content.toString)
 
 }

@@ -143,25 +143,22 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    *
    */
   override def persist(teamNames: List[String], results: List[BasicDBObject], dt: Date): Try[Unit] = {
-    Try {
+    Try ({
       db.getCollection(resultCollection).insert(results)
       db.getCollection(scrapCollection).insert(
         BasicDBObjectBuilder.start(Map("scrapDt" -> dt, "affectedRecordsNum" -> results.size)).get)
-    } recoverWith {
+    }).recoverWith({
       case th: Exception => {
         val coll = db.getCollection(resultCollection)
         val cleanQuery = new BasicDBObject("_id", new BasicDBObject("$in", seqAsJavaList(results.map(_.get("_id").asInstanceOf[String]))))
         coll.remove(cleanQuery)
         scala.util.Failure(new Exception("Persist error. Transaction was rollback", th))
       }
-    } map {
-      r => Try {
-        val stageNames = results groupBy {
-          dbObject => dbObject.get("stage").asInstanceOf[String]
-        }
+    }).map({ r => Try {
+        val stageNames = results groupBy { dbObject => dbObject.get("stage").asInstanceOf[String] }
         updateStanding(stageNames.keySet, teamNames)
       }
-    }
+    })
   }
 
 
@@ -181,20 +178,82 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
     stageNames foreach { stage =>
       stage match {
         case regularEx(k, y) => {
-          updateForm(stage, HomeFormSettings())
-          updateForm(stage, AwayFormSettings())
+          updateRegularSeasonForm(stage, HomeFormSettings())
+          updateRegularSeasonForm(stage, AwayFormSettings())
           updateRecent(teamNames, stage, 5)
         }
+
         case playoffEx(k, y) => {
-          //to bring playoff pair-key
-          updateForm(stage, HomeFormSettings())
-          updateForm(stage, AwayFormSettings())
+          updatePlayoffHomeForm(stage, HomeFormSettings())
         }
       }
     }
   }
 
-  private def updateForm(stageName: String, formSettings: FormSettings) = {
+  /**
+    *
+  db.results.aggregate([{
+      $match: {  stage: "playoff-2013/2014" } },
+      { $group: { _id: { team:"$homeTeam", k: "$playoffKey" },
+        w: { $sum: {  $cond : [ { $gt: [ "$homeScore", "$awayScore" ] }, 1, 0 ] } },
+        l: { $sum: {  $cond : [ { $gt: [ "$awayScore", "$homeScore" ] }, 1, 0 ] } }
+        }
+      },
+	  { $project: { _id: 0, team:"$_id.team", key:"$_id.k", w:1, l:1 } }, { $sort: { key:1 } }
+  ])
+
+   result :
+   { "w" : 1, "l" : 2, "team" : "Atlanta Hawks", "key" : 2581 }
+   { "w" : 2, "l" : 2, "team" : "Indiana Pacers", "key" : 2581 }
+
+   interpretation:
+        Atlanta Hawks  win: 2 + 1
+        Indiana Pacers win  2 + 2
+   *
+   */
+  private def updatePlayoffHomeForm(stageName: String, formSettings: FormSettings) = {
+    val matchSection = new BasicDBObject("$match", new BasicDBObject("stage", stageName))
+
+    val groupKey = new BasicDBObject("team", formSettings.fieldName)
+    groupKey.put("k", "$playoffKey")
+
+    val matchSection0 = new BasicDBObject("_id", groupKey)
+    matchSection0.put("w", new BasicDBObject("$sum", new BasicDBObject("$cond",
+      util.Arrays.asList(new BasicDBObject("$gt", formSettings.wFieldConditions), 1, 0))))
+
+    matchSection0.put("l", new BasicDBObject("$sum", new BasicDBObject("$cond",
+      util.Arrays.asList(new BasicDBObject("$gt", formSettings.lFieldConditions), 1, 0))))
+
+    val groupSection = new BasicDBObject("$group", matchSection0)
+
+    val projectSection0 = new BasicDBObject("_id", 0)
+    projectSection0.put("team","$_id.team")
+    projectSection0.put("key", "$_id.k")
+    projectSection0.put("w", 1)
+    projectSection0.put("l", 1)
+
+    val projectSection = new BasicDBObject("$project", projectSection0)
+    val sortSection = new BasicDBObject("$sort", new BasicDBObject("key", 1))
+
+    val cursor: Cursor = db.getCollection(resultCollection).aggregate(
+      util.Arrays.asList(matchSection, groupSection, projectSection, sortSection),
+      AggregationOptions.builder().build()
+    )
+
+    val collName = s"${formSettings.fieldName.drop(1)}-${stageName}"
+    db.getCollection(collName).drop()
+    val collection = db.getCollection(collName)
+
+    while(cursor.hasNext)
+      collection.insert(cursor.next)
+  }
+
+  /**
+   *
+   * @param stageName
+   * @param formSettings
+   */
+  private def updateRegularSeasonForm(stageName: String, formSettings: FormSettings) = {
     val matchSection = new BasicDBObject("$match", new BasicDBObject("stage", stageName))
 
     val matchSection0 = new BasicDBObject("_id", new BasicDBObject("team", formSettings.fieldName))

@@ -12,6 +12,8 @@ import akka.pattern.pipe
 import akka.actor.Status.Failure
 import scala.Some
 import com.gateway.server.actors.Receptionist.{Stage, TargetUrl}
+import java.text.SimpleDateFormat
+import scala.util.matching.Regex
 
 object WebGetter {
 
@@ -19,7 +21,7 @@ object WebGetter {
 
   case class PersistLater(updateBatch: List[BasicDBObject], scrapDt: DateTime)
 
-  case class ProcessedResults(map: Map[TargetUrl, List[BasicDBObject]], scrapDt: DateTime)
+  case class GameResults(map: Map[TargetUrl, List[BasicDBObject]], scrapDt: DateTime)
 
   case class Result(dt: String, homeTeam: String, awayTeam: String, homeScore: Int, awayScore: Int)
 
@@ -34,21 +36,23 @@ class WebGetter(task: TargetUrl, stages: TreeSet[Stage]) extends Actor with Acto
   private val timeExp = "\\[(\\d+):(\\d+)\\]".r
   private implicit val executor = context.system.dispatchers.lookup("scraper-dispatcher")
 
-  //new DateTime(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").parse("2014-04-19T00:00:00Z"))
-  extractResult(task) (DateTime.now) pipeTo self
+  //DateTime.now
+  extractResult(task)(DateTime.now) pipeTo self
+  //(new DateTime(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").parse("2014-04-19T00:00:00Z"))) pipeTo self
+
 
   def receive: Receive = ({
-    case result: ProcessedResults => context.parent ! result
+    case result: GameResults => context.parent ! result
     case Failure(ex) => {
       log.info("Try scrap later for {}", task.teamName)
       context.parent ! ScrapLater(task)
     }
   }: Actor.Receive).andThen(_ => context.stop(self))
 
-  private def extractResult(task: TargetUrl)(endDt: DateTime): Future[ProcessedResults] = future {
+  private def extractResult(task: TargetUrl)(scrapToDt: DateTime): Future[GameResults] = Future {
     import scala.collection.convert.WrapAsScala._
     val correctUrl = task.url.replace("+", "%20")
-    log.info("Collect result from {} between {}  {}", task.url, task.startScrapDt.toDate, endDt.toDate)
+    log.info("Collect result from {} between {}  {}", task.url, task.startScrapDt.toDate, scrapToDt.toDate)
 
     val doc = Jsoup.connect(correctUrl).ignoreHttpErrors(true).timeout(5000).get
     val table = doc.oneByClass("stat").toList
@@ -75,23 +79,29 @@ class WebGetter(task: TargetUrl, stages: TreeSet[Stage]) extends Actor with Acto
         }
 
         val lineDt = Array("20" + dt(2), dt(1), s"${dt(0)}T${hours}:00:00").mkString("-")
-        val currentDt = new DateTime(lineDt).plusHours(4)
+        val resultDt = new DateTime(lineDt).plusHours(4)
 
-        if (currentDt >= task.startScrapDt && currentDt <= endDt) {
-          //find stage
-          val stage = stages.find({ st => st.start.isBefore(currentDt) && st.end.isAfter(currentDt) })
-          if(stage.isEmpty) {
-            throw new IllegalArgumentException("Stage should be defined")
-          }
+        if (resultDt >= task.startScrapDt && resultDt <= scrapToDt) {
+          
+          val resultStage = stages.find({ st => st.start.isBefore(resultDt) && st.end.isAfter(resultDt) })
+          if(resultStage.isEmpty)
+            throw new IllegalArgumentException("Unknown result stage")
 
-          Some(new BasicDBObject("_id", UUID.randomUUID.toString)
-            .append("dt", currentDt.toDate)
+          val mongoObject = new BasicDBObject("_id", UUID.randomUUID.toString)
+            .append("dt", resultDt.toDate)
             .append("homeTeam", tds(1) text)
             .append("awayTeam", tds(3) text)
             .append("homeScore", scoreElements(0).text.toInt)
             .append("awayScore", scoreElements(1).text.toInt)
-            .append("stage", stage.get.name)
-          )
+            .append("stage", resultStage.get.name)
+
+          if (resultStage.get.name.contains("playoff")) {
+            mongoObject.append("playoffKey", tds(1).text.concat(tds(3).text)
+              .foldLeft(0) { (acc: Int, ch: Char) => acc + ch.toInt } )
+          }
+
+          Some(mongoObject)
+
         } else {
           None
         }
@@ -100,6 +110,6 @@ class WebGetter(task: TargetUrl, stages: TreeSet[Stage]) extends Actor with Acto
       }
     }
 
-    ProcessedResults(Map(task -> list.flatten), endDt)
+    GameResults(Map(task -> list.flatten), scrapToDt)
   }
 }

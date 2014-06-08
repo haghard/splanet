@@ -28,13 +28,13 @@ class ActorsTest extends FunSuite {
     bind[String].idBy(MongoResponseArrayKey).toSingle("results")
 
     bind[MongoConfig].toSingle(MongoConfig("192.168.0.143", 27017, "nba", "", ""))
-    bind[List[String]].toSingle(List("Oklahoma City Thunder"/*, "Miami Heat", "Chicago Bulls"*/))
+    bind[List[String]].toSingle(List("San Antonio Spurs"/*, "Miami Heat", "Chicago Bulls"*/))
     bind[String].idBy(ScraperUrl).toSingle("http://allbasketball.ru/teams/{0}.html")
     bind[String].idBy(ScraperStatCollectionKey).toSingle("scrapStat")
     bind[String].idBy(SettingCollectionKey).toSingle("settings")
 
     bind[FiniteDuration].idBy(ScraperDelay).toSingle(0 second)
-    bind[FiniteDuration].idBy(ScraperPeriod).toSingle(20 second)
+    bind[FiniteDuration].idBy(ScraperPeriod).toSingle(60 second)
 
   }
 
@@ -115,7 +115,7 @@ class ActorsTest extends FunSuite {
       dts.foreach({println(_)})
     }*/
 
-   test(" test dt ") {
+   test("test dt") {
       new ScraperApplication().start
       Thread.sleep(120000);
    }
@@ -133,7 +133,7 @@ class ActorsTest extends FunSuite {
     dao.close
   }*/
 
-  /*test("aggregation-framework") {
+  test("aggregation-framework") {
     val mongo = new MongoClient(
       util.Arrays.asList(new ServerAddress("192.168.0.143", 27017))
     )
@@ -154,7 +154,7 @@ class ActorsTest extends FunSuite {
 
     while(cursor.hasNext)
       println(cursor.next)
-  }*/
+  }
 
   /*
    *db.results.aggregate([

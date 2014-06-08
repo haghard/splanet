@@ -92,7 +92,7 @@ class Receptionist(implicit val bindingModule: BindingModule) extends Actor with
   def running(q: List[TargetUrl]): Receive = {
     case Go(targetUrl, _) => context.become(enqueueJob(q, targetUrl))
 
-    case ProcessedResults(map, scrapDt) => context.become(dequeueJob(q, map, scrapDt))
+    case GameResults(map, scrapDt) => context.become(dequeueJob(q, map, scrapDt))
 
     case ScrapLater(task) => {
       context.system.scheduler.scheduleOnce(

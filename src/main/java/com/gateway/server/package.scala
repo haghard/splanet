@@ -12,39 +12,43 @@ import com.gateway.server.actors.Receptionist.Stage
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import java.util.concurrent.{ AbstractExecutorService, TimeUnit }
 import java.util.Collections
+import rx.lang.scala.Observable
 
 package object exts {
 
-  implicit def fnToHandler[T](f: T => HttpServerResponse): Handler[T] = new Handler[T]() {
-    override def handle(req: T) = f(req)
-  }
+  object ImplicitFunctionConversions {
 
-  implicit def fnToHandler1[T](f: T => Any): Handler[T] = new Handler[T]() {
-    override def handle(req: T) = f(req)
-  }
+    implicit def fnToHandler[T](f: T => HttpServerResponse): Handler[T] = new Handler[T]() {
+      override def handle(req: T) = f(req)
+    }
 
-  implicit def fnToFunc2[R, T](f: (R, T) => R): Func2[R, T, R] = new Func2[R,T,R]() {
-    override def call(first: R, second: T) = f(first, second)
-  }
+    implicit def fnToHandler1[T](f: T => Any): Handler[T] = new Handler[T]() {
+      override def handle(req: T) = f(req)
+    }
 
-  implicit def fnToAction1[T](fn: T => HttpServerResponse): Action1[T] = new Action1[T]() {
-    override def call(event: T) = fn(event)
-  }
+    implicit def fnToFunc2[R, T](f: (R, T) => R): Func2[R, T, R] = new Func2[R, T, R]() {
+      override def call(first: R, second: T) = f(first, second)
+    }
 
-  implicit def fnToAction2[T](fn: T => Unit): Action1[T] = new Action1[T]() {
-    override def call(event: T) = fn(event)
-  }
+    implicit def fnToAction1[T](fn: T => HttpServerResponse): Action1[T] = new Action1[T]() {
+      override def call(event: T) = fn(event)
+    }
 
-  implicit def fnToAction3[T](fn: T => Any): Action1[T] = new Action1[T]() {
-    override def call(event: T) = fn(event)
-  }
+    implicit def fnToAction2[T](fn: T => Unit): Action1[T] = new Action1[T]() {
+      override def call(event: T) = fn(event)
+    }
 
-  implicit def fnToFunc1[T, E](fn: T => E): Func1[T, E] = new Func1[T, E]() {
-    override def call(event: T) = fn(event)
-  }
+    implicit def fnToAction3[T](fn: T => Any): Action1[T] = new Action1[T]() {
+      override def call(event: T) = fn(event)
+    }
 
-  implicit def runnableToFunc(f: () => Unit): Runnable = new Runnable {
-    def run() = f()
+    implicit def fnToFunc1[T, E](fn: T => E): Func1[T, E] = new Func1[T, E]() {
+      override def call(event: T) = fn(event)
+    }
+
+    implicit def runnableToFunc(f: () => Unit): Runnable = new Runnable {
+      def run() = f()
+    }
   }
 
   val MONGO_RESULT_FIELD = "results"
@@ -295,4 +299,7 @@ package object exts {
 
   implicit def BooleanBool(b: Boolean) = Bool(b)
 
+
+  trait ServerAction extends (HttpServerRequest => Observable[JsonObject]) {
+  }
 }
