@@ -206,7 +206,7 @@ class MongoDriverDao(implicit val bindingModule: BindingModule) extends Dao {
    { "w" : 1, "l" : 2, "team" : "Atlanta Hawks", "key" : 2581 }
    { "w" : 2, "l" : 2, "team" : "Indiana Pacers", "key" : 2581 }
 
-   interpretation:
+   interpretation on client side:
         Atlanta Hawks  win: 2 + 1
         Indiana Pacers win  2 + 2
    *
