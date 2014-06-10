@@ -296,11 +296,23 @@ class SportPlanetService(implicit val bindingModule: BindingModule) extends Inje
 
         reply(req, finder).subscribe { json: JsonObject => writeResponse(json, req) }
       }
-    })     
-    
-    router.get("api", { req: HttpServerRequest =>
+    })
+
+    router.get("/hello/", { req: HttpServerRequest =>
+      //http://iankent.co.uk/2014/02/10/action-composition-in-play-framework/
+      AuthenticatedObservableTask { req: HttpServerRequest =>
+        new JsonObject().putString("msg", "123")
+      } run(req)
+
+      /*ObservableTask { req: HttpServerRequest =>
+        new JsonObject().putString("msg", "123")
+      }.run(req)*/
+
+      //ObservableProcess(req)
 
     })
+
+
     
     /**
      *  Return recent games by many teams

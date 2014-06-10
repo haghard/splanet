@@ -5,7 +5,7 @@ import org.vertx.java.core.Handler
 import rx.functions.{Func2, Func1, Action1}
 import java.util.concurrent.atomic.AtomicInteger
 import io.vertx.rxcore.java.eventbus.RxMessage
-import org.vertx.java.core.json.{JsonArray, JsonObject}
+import org.vertx.java.core.json.{JsonObject, JsonArray}
 import com.google.common.collect.HashMultiset
 import com.escalatesoft.subcut.inject.BindingId
 import com.gateway.server.actors.Receptionist.Stage
@@ -300,6 +300,44 @@ package object exts {
   implicit def BooleanBool(b: Boolean) = Bool(b)
 
 
-  trait ServerAction extends (HttpServerRequest => Observable[JsonObject]) {
+
+  trait ObservableTaskBuilder {
+
+    def apply(f: HttpServerRequest => JsonObject) = new ObservableTask {
+      def run(request: HttpServerRequest) =
+        invokeBlock(request, f).subscribe({ json =>
+          request.response().end(json.toString)
+        }, { ex =>
+          request.response().end(new JsonObject().putString("error", ex.getMessage).toString)
+        })
+    }
+
+    protected def invokeBlock(request: HttpServerRequest, f: HttpServerRequest => JsonObject): Observable[JsonObject]
+
+  }
+
+  /**
+   *
+   *
+   */
+  trait ObservableTask {
+    def run(request: HttpServerRequest)
+  }
+
+  object ObservableTask extends ObservableTaskBuilder {
+
+    def invokeBlock(request: HttpServerRequest, f: HttpServerRequest => JsonObject): Observable[JsonObject] =
+      Observable.items(f(request))
+  }
+
+  object AuthenticatedObservableTask extends ObservableTaskBuilder {
+    def invokeBlock(request: HttpServerRequest, f: HttpServerRequest => JsonObject): Observable[JsonObject] = {
+      Observable.items(Option(request.headers.get("Authorization"))).map({ auth: Option[String] =>
+        auth match {
+          case Some(r) => f(request)
+          case None => new JsonObject().putString("msg", "no auth")
+        }
+      })
+    }
   }
 }
